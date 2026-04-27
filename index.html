@@ -1,0 +1,526 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>部门能力动态图谱</title>
+
+  <script src="https://cdn.jsdelivr.net/npm/d3@7"></script>
+
+  <style>
+    :root {
+      --bg: #f8fafc;
+      --panel: rgba(255, 255, 255, 0.86);
+      --text: #0f172a;
+      --muted: #64748b;
+      --line: #94a3b8;
+      --blue: #6366f1;
+      --cyan: #06b6d4;
+      --purple: #a78bfa;
+      --green: #22c55e;
+      --orange: #f97316;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html,
+    body {
+      width: 100%;
+      height: 100%;
+      margin: 0;
+      overflow: hidden;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC",
+        "Microsoft YaHei", sans-serif;
+      background:
+        radial-gradient(circle at 18% 28%, rgba(99, 102, 241, 0.16), transparent 28%),
+        radial-gradient(circle at 78% 36%, rgba(6, 182, 212, 0.14), transparent 32%),
+        radial-gradient(circle at 60% 84%, rgba(167, 139, 250, 0.12), transparent 28%),
+        linear-gradient(135deg, #f8fafc 0%, #eef2ff 48%, #f8fafc 100%);
+      color: var(--text);
+    }
+
+    #app {
+      position: relative;
+      width: 100vw;
+      height: 100vh;
+      min-height: 420px;
+    }
+
+    .title {
+      position: absolute;
+      left: 24px;
+      top: 20px;
+      z-index: 10;
+      padding: 10px 14px;
+      border: 1px solid rgba(148, 163, 184, 0.28);
+      border-radius: 18px;
+      background: rgba(255, 255, 255, 0.72);
+      backdrop-filter: blur(18px);
+      box-shadow: 0 16px 40px rgba(15, 23, 42, 0.08);
+    }
+
+    .title strong {
+      display: block;
+      font-size: 15px;
+      letter-spacing: 0.04em;
+    }
+
+    .title span {
+      display: block;
+      margin-top: 3px;
+      font-size: 11px;
+      color: var(--muted);
+    }
+
+    svg {
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+
+    .link {
+      fill: none;
+      stroke: rgba(100, 116, 139, 0.42);
+      stroke-width: 1.4;
+      stroke-linecap: round;
+    }
+
+    .link.flow {
+      stroke-dasharray: 5 7;
+      animation: dash 2.8s linear infinite;
+    }
+
+    @keyframes dash {
+      from {
+        stroke-dashoffset: 36;
+      }
+      to {
+        stroke-dashoffset: 0;
+      }
+    }
+
+    .link-label {
+      font-size: 10px;
+      fill: #64748b;
+      paint-order: stroke;
+      stroke: rgba(248, 250, 252, 0.86);
+      stroke-width: 4px;
+      stroke-linejoin: round;
+      pointer-events: none;
+    }
+
+    .node {
+      cursor: grab;
+      transition: filter 0.2s ease;
+    }
+
+    .node:active {
+      cursor: grabbing;
+    }
+
+    .node-ring {
+      fill: rgba(255, 255, 255, 0.72);
+      stroke-width: 1.5;
+      filter: drop-shadow(0 12px 24px rgba(15, 23, 42, 0.16));
+    }
+
+    .node-core {
+      stroke: rgba(255, 255, 255, 0.92);
+      stroke-width: 1.6;
+    }
+
+    .node-title {
+      font-weight: 700;
+      font-size: 12px;
+      fill: #0f172a;
+      text-anchor: middle;
+      dominant-baseline: central;
+      pointer-events: none;
+    }
+
+    .node-subtitle {
+      font-size: 9px;
+      fill: #475569;
+      text-anchor: middle;
+      dominant-baseline: central;
+      pointer-events: none;
+    }
+
+    .node.major .node-title {
+      font-size: 13px;
+    }
+
+    .node.major .node-subtitle {
+      font-size: 9.5px;
+    }
+
+    .node:hover {
+      filter: brightness(1.04);
+    }
+
+    .hint {
+      position: absolute;
+      right: 20px;
+      bottom: 18px;
+      z-index: 10;
+      padding: 8px 12px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.66);
+      border: 1px solid rgba(148, 163, 184, 0.28);
+      color: #64748b;
+      font-size: 11px;
+      backdrop-filter: blur(16px);
+    }
+
+    @media (max-width: 720px) {
+      .title {
+        left: 14px;
+        top: 14px;
+      }
+
+      .hint {
+        display: none;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <div id="app">
+    <div class="title">
+      <strong>部门能力地图</strong>
+      <span>数据 · AI · 三维模型 · 图文汇交</span>
+    </div>
+
+    <svg id="graph" aria-label="部门能力动态图谱"></svg>
+
+    <div class="hint">可拖拽节点 · 悬停查看 · 动态关系流</div>
+  </div>
+
+  <script>
+    const nodes = [
+      {
+        id: "exploration",
+        title: "地质勘查",
+        subtitle: "现场 · 分析",
+        type: "minor",
+        radius: 38,
+        color: "#22c55e"
+      },
+      {
+        id: "platform",
+        title: "信息化平台",
+        subtitle: "数据 · 流程 · AI",
+        type: "major",
+        radius: 54,
+        color: "#6366f1"
+      },
+      {
+        id: "ai",
+        title: "AI Agent",
+        subtitle: "智能增强",
+        type: "ai",
+        radius: 40,
+        color: "#a78bfa"
+      },
+      {
+        id: "model",
+        title: "三维建模",
+        subtitle: "空间 · 模型",
+        type: "major",
+        radius: 54,
+        color: "#06b6d4"
+      },
+      {
+        id: "delivery",
+        title: "图文 / 汇交",
+        subtitle: "表达 · 归档",
+        type: "minor",
+        radius: 42,
+        color: "#f97316"
+      }
+    ];
+
+    const links = [
+      {
+        source: "exploration",
+        target: "platform",
+        label: "数据输入",
+        strength: 0.9
+      },
+      {
+        source: "exploration",
+        target: "model",
+        label: "地质解释",
+        strength: 0.65
+      },
+      {
+        source: "platform",
+        target: "model",
+        label: "数据支撑",
+        strength: 1
+      },
+      {
+        source: "platform",
+        target: "ai",
+        label: "智能增强",
+        strength: 0.8
+      },
+      {
+        source: "ai",
+        target: "model",
+        label: "分析辅助",
+        strength: 0.75
+      },
+      {
+        source: "ai",
+        target: "delivery",
+        label: "自动校核",
+        strength: 0.62
+      },
+      {
+        source: "model",
+        target: "delivery",
+        label: "成果转译",
+        strength: 0.9
+      },
+      {
+        source: "delivery",
+        target: "platform",
+        label: "版本反馈",
+        strength: 0.45
+      }
+    ];
+
+    const svg = d3.select("#graph");
+    const width = window.innerWidth;
+    const height = window.innerHeight;
+
+    svg.attr("viewBox", [0, 0, width, height]);
+
+    const defs = svg.append("defs");
+
+    const glow = defs
+      .append("filter")
+      .attr("id", "glow")
+      .attr("x", "-50%")
+      .attr("y", "-50%")
+      .attr("width", "200%")
+      .attr("height", "200%");
+
+    glow
+      .append("feGaussianBlur")
+      .attr("stdDeviation", 4)
+      .attr("result", "coloredBlur");
+
+    const merge = glow.append("feMerge");
+    merge.append("feMergeNode").attr("in", "coloredBlur");
+    merge.append("feMergeNode").attr("in", "SourceGraphic");
+
+    nodes.forEach((node) => {
+      const gradient = defs
+        .append("radialGradient")
+        .attr("id", `grad-${node.id}`)
+        .attr("cx", "35%")
+        .attr("cy", "30%")
+        .attr("r", "70%");
+
+      gradient
+        .append("stop")
+        .attr("offset", "0%")
+        .attr("stop-color", "#ffffff")
+        .attr("stop-opacity", 0.95);
+
+      gradient
+        .append("stop")
+        .attr("offset", "55%")
+        .attr("stop-color", node.color)
+        .attr("stop-opacity", 0.24);
+
+      gradient
+        .append("stop")
+        .attr("offset", "100%")
+        .attr("stop-color", node.color)
+        .attr("stop-opacity", 0.72);
+    });
+
+    const container = svg.append("g");
+
+    const linkGroup = container.append("g");
+    const labelGroup = container.append("g");
+    const nodeGroup = container.append("g");
+
+    const link = linkGroup
+      .selectAll("line")
+      .data(links)
+      .join("line")
+      .attr("class", "link flow");
+
+    const linkLabel = labelGroup
+      .selectAll("text")
+      .data(links)
+      .join("text")
+      .attr("class", "link-label")
+      .text((d) => d.label);
+
+    const node = nodeGroup
+      .selectAll("g")
+      .data(nodes)
+      .join("g")
+      .attr("class", (d) => `node ${d.type}`)
+      .call(
+        d3
+          .drag()
+          .on("start", dragStarted)
+          .on("drag", dragged)
+          .on("end", dragEnded)
+      );
+
+    node
+      .append("circle")
+      .attr("class", "node-ring")
+      .attr("r", (d) => d.radius + 6)
+      .attr("stroke", (d) => d.color)
+      .attr("stroke-opacity", 0.28);
+
+    node
+      .append("circle")
+      .attr("class", "node-core")
+      .attr("r", (d) => d.radius)
+      .attr("fill", (d) => `url(#grad-${d.id})`)
+      .attr("stroke", (d) => d.color)
+      .attr("filter", "url(#glow)");
+
+    node
+      .append("text")
+      .attr("class", "node-title")
+      .attr("y", (d) => (d.subtitle ? -6 : 0))
+      .text((d) => d.title);
+
+    node
+      .append("text")
+      .attr("class", "node-subtitle")
+      .attr("y", 13)
+      .text((d) => d.subtitle);
+
+    const simulation = d3
+      .forceSimulation(nodes)
+      .force(
+        "link",
+        d3
+          .forceLink(links)
+          .id((d) => d.id)
+          .distance((d) => {
+            if (
+              d.source.id === "platform" ||
+              d.target.id === "platform" ||
+              d.source.id === "model" ||
+              d.target.id === "model"
+            ) {
+              return 155;
+            }
+            return 135;
+          })
+          .strength((d) => d.strength)
+      )
+      .force("charge", d3.forceManyBody().strength(-520))
+      .force("center", d3.forceCenter(width / 2, height / 2 + 12))
+      .force("collide", d3.forceCollide().radius((d) => d.radius + 26))
+      .force("x", d3.forceX((d) => {
+        const positions = {
+          exploration: width * 0.16,
+          platform: width * 0.36,
+          ai: width * 0.52,
+          model: width * 0.64,
+          delivery: width * 0.84
+        };
+        return positions[d.id] || width / 2;
+      }).strength(0.12))
+      .force("y", d3.forceY(height / 2).strength(0.08))
+      .alphaTarget(0.018)
+      .on("tick", ticked);
+
+    function ticked() {
+      link
+        .attr("x1", (d) => d.source.x)
+        .attr("y1", (d) => d.source.y)
+        .attr("x2", (d) => d.target.x)
+        .attr("y2", (d) => d.target.y);
+
+      linkLabel
+        .attr("x", (d) => (d.source.x + d.target.x) / 2)
+        .attr("y", (d) => (d.source.y + d.target.y) / 2 - 8);
+
+      node.attr("transform", (d) => `translate(${d.x},${d.y})`);
+    }
+
+    node
+      .on("mouseenter", function (event, d) {
+        d3.select(this)
+          .transition()
+          .duration(160)
+          .attr("transform", `translate(${d.x},${d.y}) scale(1.07)`);
+
+        link
+          .transition()
+          .duration(160)
+          .attr("stroke-opacity", (l) =>
+            l.source.id === d.id || l.target.id === d.id ? 0.95 : 0.18
+          )
+          .attr("stroke-width", (l) =>
+            l.source.id === d.id || l.target.id === d.id ? 2.4 : 1
+          );
+
+        linkLabel
+          .transition()
+          .duration(160)
+          .attr("opacity", (l) =>
+            l.source.id === d.id || l.target.id === d.id ? 1 : 0.28
+          );
+      })
+      .on("mouseleave", function () {
+        d3.select(this).transition().duration(160).attr("transform", null);
+
+        link
+          .transition()
+          .duration(160)
+          .attr("stroke-opacity", 1)
+          .attr("stroke-width", 1.4);
+
+        linkLabel.transition().duration(160).attr("opacity", 1);
+      });
+
+    function dragStarted(event, d) {
+      if (!event.active) simulation.alphaTarget(0.18).restart();
+      d.fx = d.x;
+      d.fy = d.y;
+    }
+
+    function dragged(event, d) {
+      d.fx = event.x;
+      d.fy = event.y;
+    }
+
+    function dragEnded(event, d) {
+      if (!event.active) simulation.alphaTarget(0.018);
+      d.fx = null;
+      d.fy = null;
+    }
+
+    const zoom = d3
+      .zoom()
+      .scaleExtent([0.72, 1.6])
+      .on("zoom", (event) => {
+        container.attr("transform", event.transform);
+      });
+
+    svg.call(zoom);
+
+    window.addEventListener("resize", () => {
+      location.reload();
+    });
+  </script>
+</body>
+</html>
