@@ -3,1241 +3,1165 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>部门能力地图｜Diegetic Tactical Map UI</title>
+  <title>部门能力地图｜Division Projection v7.4</title>
   <script src="https://cdn.jsdelivr.net/npm/d3@7"></script>
   <style>
-    :root {
-      --bg: #05070a;
-      --bg-1: #081018;
-      --panel: rgba(255, 255, 255, .88);
-      --panel-soft: rgba(255, 255, 255, .72);
-      --panel-dark: rgba(8, 13, 18, .58);
-      --line: rgba(236, 241, 246, .32);
-      --line-soft: rgba(236, 241, 246, .14);
-      --orange: #ff8a00;
-      --orange-2: #f2c443;
-      --orange-dim: rgba(255, 138, 0, .46);
-      --text: #f7fafc;
-      --muted: rgba(247, 250, 252, .58);
-      --dark-text: #1f2933;
-      --dark-muted: rgba(31, 41, 51, .68);
-      --glass: rgba(12, 18, 24, .46);
+    :root{
+      --orange: rgb(255,127,0);
+      --white: rgb(244,255,255);
+      --red: rgb(255,48,0);
+      --green: rgb(140,200,60);
+      --cyan: rgb(71,230,220);
+      --bg: #030507;
+      --text: rgba(244,255,255,.94);
+      --text-soft: rgba(244,255,255,.58);
+      --text-dim: rgba(244,255,255,.28);
     }
-
-    * { box-sizing: border-box; }
-
-    html,
-    body {
-      width: 100%;
-      height: 100%;
-      margin: 0;
-      overflow: hidden;
-      background: var(--bg);
+    *{ box-sizing:border-box; }
+    html, body{
+      margin:0; width:100%; height:100%; overflow:hidden;
+      background: var(--bg); color: var(--text);
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
-      color: var(--text);
     }
-
-    body::before,
-    body::after {
-      content: "";
-      position: fixed;
-      inset: 0;
-      pointer-events: none;
+    body::before, body::after{
+      content:""; position:fixed; inset:0; pointer-events:none;
     }
-
-    body::before {
-      z-index: 0;
+    body::before{
+      z-index:0;
       background:
-        radial-gradient(ellipse at 48% 48%, rgba(255, 138, 0, .10), transparent 34%),
-        radial-gradient(ellipse at 18% 82%, rgba(255,255,255,.07), transparent 22%),
-        radial-gradient(ellipse at 78% 24%, rgba(255,255,255,.055), transparent 20%),
-        linear-gradient(135deg, #030507 0%, #0a1117 52%, #05070a 100%);
+        radial-gradient(ellipse at 50% 50%, rgba(255,127,0,.08), transparent 28%),
+        radial-gradient(ellipse at 60% 28%, rgba(244,255,255,.06), transparent 16%),
+        linear-gradient(135deg, #020305 0%, #071015 52%, #030507 100%);
     }
-
-    body::after {
-      z-index: 1;
-      opacity: .56;
+    body::after{
+      z-index:1;
+      opacity:.32;
       background-image:
-        linear-gradient(rgba(255,255,255,.030) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(255,255,255,.030) 1px, transparent 1px),
-        linear-gradient(rgba(255,138,0,.040) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(255,138,0,.040) 1px, transparent 1px);
-      background-size: 82px 82px, 82px 82px, 20px 20px, 20px 20px;
-      mask-image: radial-gradient(circle at center, black 0%, black 62%, transparent 96%);
+        linear-gradient(rgba(244,255,255,.022) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(244,255,255,.022) 1px, transparent 1px),
+        linear-gradient(rgba(255,127,0,.020) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,127,0,.020) 1px, transparent 1px);
+      background-size: 90px 90px, 90px 90px, 18px 18px, 18px 18px;
+      mask-image: radial-gradient(circle at center, black 0, black 62%, transparent 98%);
     }
 
-    #app {
-      position: relative;
-      width: 100vw;
-      height: 100vh;
-      min-height: 660px;
-      z-index: 2;
+    #app{
+      position:relative; z-index:2;
+      width:100vw; height:100vh; min-height:680px; overflow:hidden;
     }
-
-    .stage {
-      position: absolute;
-      inset: 16px;
-      overflow: hidden;
-      border: 1px solid rgba(255,138,0,.14);
-      border-radius: 24px;
+    .stage{
+      position:absolute; inset:14px;
+      overflow:hidden;
+      border:1px solid rgba(244,255,255,.075);
       background:
-        linear-gradient(180deg, rgba(255,255,255,.026), rgba(255,255,255,.006)),
-        radial-gradient(ellipse at 50% 55%, rgba(255,138,0,.028), transparent 48%);
+        linear-gradient(180deg, rgba(244,255,255,.018), rgba(244,255,255,.004)),
+        radial-gradient(ellipse at 50% 52%, rgba(255,127,0,.024), transparent 45%);
       box-shadow:
-        inset 0 0 0 1px rgba(255,255,255,.022),
-        inset 0 0 120px rgba(255,138,0,.025),
-        0 26px 80px rgba(0,0,0,.42);
-      backdrop-filter: blur(14px) saturate(116%);
+        inset 0 0 0 1px rgba(255,255,255,.012),
+        inset 0 0 120px rgba(255,127,0,.012),
+        0 26px 80px rgba(0,0,0,.55);
     }
-
-    .stage::before {
-      content: "";
-      position: absolute;
-      inset: 0;
-      z-index: 4;
-      pointer-events: none;
-      opacity: .13;
+    .stage::before{
+      content:""; position:absolute; inset:0; z-index:4; pointer-events:none;
+      opacity:.08;
       background: repeating-linear-gradient(
         0deg,
-        rgba(255,255,255,.035) 0,
-        rgba(255,255,255,.035) 1px,
+        rgba(244,255,255,.03) 0,
+        rgba(244,255,255,.03) 1px,
         transparent 1px,
         transparent 8px
       );
-      mix-blend-mode: screen;
     }
 
-    .stage::after {
-      content: "";
-      position: absolute;
-      inset: -10%;
-      z-index: 1;
-      pointer-events: none;
-      opacity: .42;
-      filter: blur(24px);
-      background:
-        radial-gradient(ellipse at 18% 74%, rgba(255,255,255,.065), transparent 28%),
-        radial-gradient(ellipse at 80% 28%, rgba(255,255,255,.055), transparent 25%),
-        radial-gradient(ellipse at 50% 58%, rgba(255,138,0,.052), transparent 25%);
-      animation: smokeMove 19s ease-in-out infinite alternate;
+    svg{
+      position:relative; z-index:3;
+      width:100%; height:100%; display:block;
     }
 
-    @keyframes smokeMove {
-      from { transform: translate3d(-1.4%, 1.2%, 0) scale(1); }
-      to { transform: translate3d(1.4%, -1.0%, 0) scale(1.04); }
+    /* top ui */
+    .top-ui{
+      position:absolute; top:22px; left:28px; z-index:10; pointer-events:none;
+    }
+    .top-row{
+      display:flex; align-items:center; gap:9px; margin-bottom:14px;
+    }
+    .glyph{
+      width:33px; height:33px; display:grid; place-items:center;
+      border:1px solid rgba(244,255,255,.10);
+      background: rgba(5,8,10,.55);
+      color: rgba(244,255,255,.58);
+      backdrop-filter: blur(8px);
+      font-size:15px;
+    }
+    .glyph.active{
+      background: var(--orange); border-color: var(--orange); color:#121416;
+    }
+    .home-title{
+      margin-left:8px; display:flex; align-items:center; gap:12px;
+      color: rgba(244,255,255,.90); font-size:23px; font-weight:300; letter-spacing:.15em;
+    }
+    .home-title::before, .home-title::after{
+      content:""; width:1px; height:26px; background: rgba(244,255,255,.20);
+    }
+    .section{
+      display:flex; align-items:center; gap:14px;
+    }
+    .section-code{
+      height:38px; padding:0 14px; display:grid; place-items:center;
+      background: var(--orange); color:#fff; font-size:21px; font-weight:300; letter-spacing:.08em;
+    }
+    .section-name{
+      color: rgba(242,196,67,.95); font-size:28px; font-weight:300; letter-spacing:.08em;
+    }
+    .section-sub{
+      margin-top:8px; margin-left:4px;
+      color: rgba(244,255,255,.38); font-size:10px; letter-spacing:.18em; text-transform:uppercase;
     }
 
-    .title-block {
-      position: absolute;
-      top: 26px;
-      left: 42px;
-      z-index: 10;
-      display: flex;
-      align-items: center;
-      gap: 14px;
-      pointer-events: none;
+    /* right readout */
+    .readout{
+      position:absolute; right:24px; top:88px; width:286px; z-index:9;
+      display:grid; gap:10px; pointer-events:none;
     }
-
-    .title-no {
-      height: 42px;
-      padding: 0 16px;
-      display: grid;
-      place-items: center;
-      background: var(--orange);
-      color: #fff;
-      font-size: 27px;
-      font-weight: 300;
-      letter-spacing: .08em;
-      text-transform: uppercase;
-      box-shadow: 0 6px 18px rgba(0,0,0,.24);
-    }
-
-    .title-main {
-      font-size: 30px;
-      line-height: 1;
-      font-weight: 300;
-      color: rgba(242, 196, 67, .95);
-      letter-spacing: .08em;
-      text-shadow: 0 0 12px rgba(242,196,67,.18);
-    }
-
-    .title-sub {
-      position: absolute;
-      top: 76px;
-      left: 48px;
-      z-index: 10;
-      color: rgba(255,255,255,.48);
-      font-size: 11px;
-      letter-spacing: .18em;
-      text-transform: uppercase;
-      pointer-events: none;
-    }
-
-    .left-readout {
-      position: absolute;
-      left: 0;
-      top: 0;
-      bottom: 0;
-      width: 88px;
-      z-index: 7;
-      background:
-        linear-gradient(180deg, rgba(5,8,12,.72), rgba(5,8,12,.42)),
-        radial-gradient(ellipse at 60% 40%, rgba(255,255,255,.07), transparent 44%);
-      border-right: 1px solid rgba(255,255,255,.08);
-      pointer-events: none;
-    }
-
-    .left-readout .page {
-      position: absolute;
-      bottom: 24px;
-      left: 32px;
-      font-size: 16px;
-      color: rgba(255,255,255,.86);
-      font-weight: 500;
-    }
-
-    .left-readout .vertical {
-      position: absolute;
-      left: 19px;
-      top: 130px;
-      writing-mode: vertical-rl;
-      transform: rotate(180deg);
-      color: rgba(255,255,255,.22);
-      letter-spacing: .16em;
-      font-size: 10px;
-      text-transform: uppercase;
-    }
-
-    .legend {
-      position: absolute;
-      left: 118px;
-      bottom: 26px;
-      z-index: 8;
-      display: grid;
-      gap: 5px;
-      color: rgba(255,255,255,.35);
-      font-size: 10px;
-      letter-spacing: .12em;
-      text-transform: uppercase;
-      pointer-events: none;
-    }
-
-    .legend strong {
-      color: rgba(255,138,0,.84);
-      font-weight: 700;
-    }
-
-    .hint {
-      position: absolute;
-      right: 28px;
-      bottom: 26px;
-      z-index: 8;
-      padding: 7px 12px;
-      border: 1px solid rgba(255,138,0,.16);
-      border-radius: 999px;
-      background: rgba(8,13,18,.42);
-      backdrop-filter: blur(14px);
-      color: rgba(255,255,255,.52);
-      font-size: 11px;
-      letter-spacing: .08em;
-      pointer-events: none;
-    }
-
-    .focus-card {
-      position: absolute;
-      right: 42px;
-      top: 108px;
-      width: min(390px, 34vw);
-      min-height: 174px;
-      z-index: 9;
-      padding: 18px 20px 18px 22px;
-      background: rgba(255,255,255,.86);
-      color: var(--dark-text);
-      box-shadow: 0 22px 46px rgba(0,0,0,.24);
-      border: 1px solid rgba(255,255,255,.62);
+    .panel{
+      padding:12px 13px 13px;
+      background: rgba(244,255,255,.055);
+      border:1px solid rgba(244,255,255,.12);
       backdrop-filter: blur(12px);
-      transform: translateX(0);
-      opacity: .94;
-      transition: opacity .18s ease, transform .18s ease;
+      box-shadow: inset 0 0 0 1px rgba(244,255,255,.02);
+      position:relative;
+    }
+    .panel::before{
+      content:""; position:absolute; left:0; top:0; bottom:0; width:4px;
+      background: var(--orange); opacity:.85;
+    }
+    .panel-top{
+      display:flex; justify-content:space-between; align-items:center; gap:8px;
+      color: rgba(244,255,255,.45); font-size:10px; letter-spacing:.14em; text-transform:uppercase;
+    }
+    .panel-code{
+      color: var(--orange); font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size:11px; letter-spacing:.10em;
+    }
+    .panel-title{
+      margin:7px 0 2px; font-size:22px; font-weight:300; color: var(--white); letter-spacing:.06em;
+    }
+    .panel-subtitle{
+      color: rgba(255,206,140,.86); font-size:11px; letter-spacing:.08em;
+    }
+    .panel-text{
+      margin:10px 0 0; color: rgba(244,255,255,.56); font-size:12px; line-height:1.55;
+    }
+    .metric-grid{
+      display:grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap:8px; margin-top:10px;
+    }
+    .metric{
+      min-height:49px; padding:8px 9px;
+      background: rgba(6,10,12,.22); border:1px solid rgba(244,255,255,.09);
+    }
+    .metric .num{
+      font-size:22px; line-height:1; font-weight:300; color: var(--white);
+    }
+    .metric .txt{
+      margin-top:5px; color: rgba(244,255,255,.42); font-size:9px; letter-spacing:.10em; text-transform:uppercase;
     }
 
-    .focus-card.hidden {
-      opacity: 0;
-      transform: translateX(12px);
-      pointer-events: none;
-    }
-
-    .focus-card::before {
-      content: "";
-      position: absolute;
-      left: 0;
-      top: 0;
-      width: 8px;
-      height: 100%;
-      background: var(--orange);
-    }
-
-    .focus-card .focus-title {
-      font-size: 22px;
-      font-weight: 300;
-      letter-spacing: .05em;
-      color: #111827;
-      margin: 0 0 8px 0;
-    }
-
-    .focus-card .focus-code {
-      font-size: 11px;
-      color: rgba(255,138,0,.95);
-      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-      letter-spacing: .12em;
-      margin-bottom: 10px;
-    }
-
-    .focus-card .focus-body {
-      margin: 0;
-      color: rgba(31,41,51,.76);
-      font-size: 13px;
-      line-height: 1.65;
-    }
-
-    .focus-card ul {
-      margin: 10px 0 0 0;
-      padding: 0;
-      list-style: none;
-      display: grid;
-      gap: 4px;
-    }
-
-    .focus-card li {
-      font-size: 12px;
-      color: rgba(31,41,51,.72);
-      line-height: 1.55;
-    }
-
-    .focus-card li::before {
-      content: "■";
-      color: var(--orange);
-      margin-right: 7px;
-      font-size: 9px;
-    }
-
-    .reset-btn {
-      position: absolute;
-      top: 28px;
-      right: 30px;
-      z-index: 11;
-      padding: 8px 12px;
-      border: 1px solid rgba(255,255,255,.14);
-      border-radius: 999px;
-      background: rgba(5,8,12,.42);
-      color: rgba(255,255,255,.58);
-      font-size: 11px;
-      letter-spacing: .12em;
-      cursor: pointer;
+    /* bottom controls */
+    .mode-bar{
+      position:absolute; left:50%; bottom:20px; transform:translateX(-50%);
+      z-index:11; display:flex; gap:8px; padding:7px 9px;
+      border:1px solid rgba(244,255,255,.12);
+      background: rgba(5,8,10,.48);
       backdrop-filter: blur(12px);
-      transition: color .16s ease, border-color .16s ease;
+    }
+    .mode-btn{
+      height:28px; padding:0 10px;
+      border:1px solid rgba(244,255,255,.12);
+      background: rgba(244,255,255,.04);
+      color: rgba(244,255,255,.58);
+      font-size:10px; letter-spacing:.10em; cursor:pointer;
+      transition: color .15s ease, border-color .15s ease, background .15s ease;
+    }
+    .mode-btn:hover{ color:#fff; border-color: rgba(255,127,0,.42); }
+    .mode-btn.active{ color:#101214; background: var(--orange); border-color: var(--orange); }
+
+    .hint{
+      position:absolute; right:30px; bottom:26px; z-index:10; pointer-events:none;
+      color: rgba(244,255,255,.40); font-size:10px; letter-spacing:.10em; text-transform:uppercase;
     }
 
-    .reset-btn:hover {
-      color: #fff;
-      border-color: rgba(255,138,0,.45);
+    /* background */
+    .bg-topo{ opacity:.22; }
+    .bg-area{
+      fill: rgba(244,255,255,.010);
+      stroke: rgba(244,255,255,.04);
+      stroke-width:.8;
     }
-
-    svg {
-      position: relative;
-      z-index: 3;
-      width: 100%;
-      height: 100%;
-      display: block;
+    .bg-area.orange{
+      fill: rgba(255,127,0,.016);
+      stroke: rgba(255,127,0,.08);
     }
-
-    .map-bg-line {
-      fill: none;
-      stroke: rgba(255,255,255,.11);
-      stroke-width: 1.05;
-      stroke-linecap: round;
-      opacity: .68;
+    .bg-line{
+      fill:none; stroke: rgba(244,255,255,.08); stroke-width:.85;
+      stroke-linecap:round; stroke-linejoin:round; opacity:.42;
     }
-
-    .map-bg-line.road {
-      stroke: rgba(255,255,255,.22);
-      stroke-width: 1.15;
-      opacity: .60;
+    .bg-line.road{ stroke: rgba(244,255,255,.15); stroke-width:1.0; opacity:.48; }
+    .bg-line.orange{ stroke: rgba(255,127,0,.13); stroke-width:.95; opacity:.35; }
+    .bg-line.faint{ stroke: rgba(244,255,255,.035); stroke-width:.72; opacity:.32; }
+    .vol-body{
+      fill: rgba(244,255,255,.012);
+      stroke: rgba(244,255,255,.052);
+      stroke-width:.65;
+      opacity:.30;
     }
-
-    .map-bg-line.faint {
-      stroke: rgba(255,255,255,.055);
-      stroke-width: .8;
+    .vol-top{
+      fill: rgba(244,255,255,.026);
+      stroke: rgba(244,255,255,.060);
+      stroke-width:.65;
+      opacity:.32;
     }
-
-    .map-bg-line.orange {
-      stroke: rgba(255,138,0,.16);
-      stroke-width: .95;
+    .vol-highlight{
+      fill: rgba(255,127,0,.014);
+      stroke: rgba(255,127,0,.070);
+      stroke-width:.70;
+      opacity:.30;
     }
-
-    .map-bg-fill {
-      fill: rgba(255,255,255,.020);
-      stroke: rgba(255,255,255,.07);
-      stroke-width: 1;
+    .zone-label{
+      fill: rgba(244,255,255,.18);
+      font-size:11px; letter-spacing:.11em;
+      pointer-events:none;
     }
+    .zone-label.orange{ fill: rgba(255,127,0,.42); }
 
-    .map-bg-fill.orange {
-      fill: rgba(255,138,0,.030);
-      stroke: rgba(255,138,0,.16);
+    /* routes */
+    .route path{ fill:none; stroke-linecap:round; stroke-linejoin:round; }
+    .route-bg{ stroke: rgba(244,255,255,.030); stroke-width:3.2; opacity:.40; }
+    .route-ghost{ stroke: rgba(244,255,255,.24); stroke-width:.72; opacity:.58; }
+    .route-main{ stroke: rgba(255,127,0,.12); stroke-width:.55; opacity:.22; }
+    .route-flow{
+      stroke: rgba(255,205,140,.92); stroke-width:.82;
+      stroke-dasharray: 4 18;
+      animation: routeFlow 1.2s linear infinite;
+      filter:url(#strongGlow);
+      opacity:0;
     }
-
-    .sector-label {
-      fill: rgba(255,255,255,.30);
-      font-size: 11px;
-      letter-spacing: .10em;
-      pointer-events: none;
+    .route-beam{
+      stroke: rgba(255,127,0,.10); stroke-width:2.4; opacity:0; filter:url(#softGlow);
     }
-
-    .sector-label.orange {
-      fill: rgba(242,196,67,.58);
+    .route.primary.visible .route-ghost,
+    .route.primary.visible .route-main{
+      opacity:.62;
     }
-
-    .route-bg {
-      fill: none;
-      stroke: rgba(255,255,255,.055);
-      stroke-width: 4.4;
-      stroke-linecap: round;
-      stroke-linejoin: round;
-      opacity: .52;
+    .route.connected .route-main{
+      stroke: rgba(255,127,0,.76);
+      stroke-width:1.1;
+      stroke-dasharray: 8 12;
+      animation: routePulse 2.5s linear infinite;
+      opacity:1;
+      filter:url(#softGlow);
     }
+    .route.connected .route-flow,
+    .route.connected .route-beam{ opacity:.95; }
+    .route.hidden{ opacity:0; pointer-events:none; }
+    .route.dim{ opacity:.08; }
 
-    .route-ghost {
-      fill: none;
-      stroke: rgba(255,255,255,.28);
-      stroke-width: .86;
-      stroke-linecap: round;
-      stroke-linejoin: round;
-      opacity: .56;
+    @keyframes routePulse{ from { stroke-dashoffset: 70; } to { stroke-dashoffset: 0; } }
+    @keyframes routeFlow{ from { stroke-dashoffset: 50; } to { stroke-dashoffset: 0; } }
+
+    .route-label path{
+      fill: rgba(244,255,255,.034);
+      stroke: rgba(244,255,255,.11);
+      stroke-width:.7;
     }
-
-    .route-main {
-      fill: none;
-      stroke: rgba(255,138,0,.16);
-      stroke-width: .62;
-      stroke-linecap: round;
-      stroke-linejoin: round;
-      opacity: .34;
+    .route-label text{
+      fill: rgba(244,255,255,.48);
+      font-size:9px; font-weight:600; letter-spacing:.10em;
+      text-anchor:middle; dominant-baseline:central; pointer-events:none;
     }
-
-    .route-beam {
-      fill: none;
-      stroke: rgba(255,138,0,.12);
-      stroke-width: 3.1;
-      stroke-linecap: round;
-      stroke-linejoin: round;
-      filter: url(#softGlow);
-      opacity: 0;
+    .route-label .accent{
+      fill: rgba(255,127,0,.56); opacity:.34;
     }
-
-    .route-core {
-      fill: none;
-      stroke: rgba(255,210,142,.95);
-      stroke-width: .84;
-      stroke-linecap: round;
-      stroke-linejoin: round;
-      stroke-dasharray: 4 20;
-      animation: routeDashFast 1.15s linear infinite;
-      filter: url(#strongGlow);
-      opacity: 0;
+    .route-label.visible{ opacity:.62; }
+    .route-label.connected{ opacity:1; }
+    .route-label.connected path{
+      fill: rgba(255,127,0,.13);
+      stroke: rgba(255,127,0,.48);
+      filter:url(#softGlow);
     }
+    .route-label.connected text{ fill: rgba(244,255,255,.95); }
+    .route-label.connected .accent{ opacity:1; filter:url(#softGlow); }
+    .route-label.hidden{ opacity:0; pointer-events:none; }
 
-    .route.active .route-main {
-      stroke: rgba(255,138,0,.78);
-      stroke-width: 1.26;
-      opacity: 1;
-      stroke-dasharray: 8 13;
-      animation: routeDash 2.5s linear infinite;
-      filter: url(#softGlow);
+    .particle-dot, .particle-white, .particle-arrow{
+      pointer-events:none; opacity:0;
     }
+    .particle-dot{ fill: rgba(255,150,64,.96); filter:url(#strongGlow); }
+    .particle-white{ fill: rgba(244,255,255,.92); filter:url(#softGlow); }
+    .particle-arrow{ fill: rgba(255,205,140,.96); filter:url(#softGlow); }
 
-    .route.active .route-beam,
-    .route.active .route-core {
-      opacity: .96;
+    /* node anchors - unified */
+    .marker{ cursor:pointer; }
+    .anchor-core{
+      fill: var(--orange);
+      filter:url(#softGlow);
     }
-
-    .route.dim {
-      opacity: .12;
+    .anchor-frame, .anchor-ticks, .anchor-aux{
+      fill:none; vector-effect:non-scaling-stroke; stroke-width:1;
     }
-
-    @keyframes routeDash { from { stroke-dashoffset: 72; } to { stroke-dashoffset: 0; } }
-    @keyframes routeDashFast { from { stroke-dashoffset: 52; } to { stroke-dashoffset: 0; } }
-
-    .particle-dot,
-    .particle-dot-white,
-    .particle-arrow {
-      pointer-events: none;
-      opacity: 0;
+    .anchor-frame{ stroke: rgba(244,255,255,.34); opacity:.60; }
+    .anchor-ticks{ stroke: rgba(244,255,255,.82); opacity:.82; }
+    .anchor-aux{ stroke: rgba(255,127,0,.24); opacity:.32; stroke-dasharray:3 6; }
+    .marker.selected .anchor-core{ fill: var(--white); filter:none; }
+    .marker.selected .anchor-frame,
+    .marker.related .anchor-frame{
+      stroke: rgba(255,127,0,.82); opacity:1; filter:url(#softGlow);
     }
-
-    .particle-dot {
-      fill: rgba(255,154,72,.96);
-      filter: url(#strongGlow);
+    .marker.selected .anchor-ticks,
+    .marker.related .anchor-ticks{
+      stroke: rgba(244,255,255,.96); opacity:1;
     }
+    .marker.dimmed{ opacity:.26; }
 
-    .particle-dot-white {
-      fill: rgba(255,255,255,.9);
-      filter: url(#softGlow);
+    /* callouts */
+    .callout-stem{
+      stroke: rgba(244,255,255,.12); stroke-width:.62; fill:none;
     }
-
-    .particle-arrow {
-      fill: rgba(255,210,142,.95);
-      filter: url(#softGlow);
+    .callout-panel{
+      fill: rgba(9,13,17,.14);
+      stroke: rgba(244,255,255,.042);
+      stroke-width:.52;
+      filter:url(#glassShadow);
+      transition: opacity .16s ease;
     }
-
-    .route-label path {
-      fill: rgba(255,255,255,.050);
-      stroke: rgba(255,255,255,.18);
-      stroke-width: .85;
+    .callout-topline{
+      stroke: rgba(255,127,0,.16);
+      stroke-width:.62;
+      transition: opacity .16s ease;
     }
-
-    .route-label text {
-      fill: rgba(255,255,255,.58);
-      font-size: 10px;
-      font-weight: 650;
-      letter-spacing: .10em;
-      text-anchor: middle;
-      dominant-baseline: central;
-      pointer-events: none;
+    .callout-accent{
+      stroke: rgba(255,127,0,.30);
+      stroke-width:1.2;
+      fill:none;
+      opacity:.42;
+      transition: opacity .16s ease;
     }
-
-    .route-label .label-accent {
-      fill: rgba(255,138,0,.70);
-      opacity: .46;
+    .marker .callout-select-glow,
+    .marker .callout-select-corner{
+      opacity:0;
+      pointer-events:none;
+      transition: opacity .16s ease;
     }
-
-    .route-label.active path {
-      fill: rgba(255,138,0,.18);
-      stroke: rgba(255,138,0,.60);
-      filter: url(#softGlow);
+    .marker.selected .callout-panel{
+      fill: rgba(12,17,21,.24);
+      stroke: rgba(244,255,255,.13);
+      stroke-width:.78;
+      filter:url(#selectedModuleGlow);
     }
-
-    .route-label.active text {
-      fill: rgba(255,255,255,.95);
+    .marker.selected .callout-topline{
+      stroke: rgba(255,127,0,.54);
+      stroke-width:.92;
+      filter:url(#softGlow);
     }
-
-    .route-label.active .label-accent {
-      opacity: 1;
-      filter: url(#softGlow);
+    .marker.selected .callout-accent{
+      stroke: rgba(255,127,0,.80);
+      stroke-width:1.55;
+      opacity:.92;
+      filter:url(#softGlow);
     }
-
-    .route-label.dim {
-      opacity: .18;
+    .marker.selected .callout-select-glow{
+      opacity:.78;
+      filter:url(#selectedModuleGlow);
     }
-
-    .marker {
-      cursor: pointer;
+    .marker.selected .callout-select-corner{
+      opacity:.95;
+      filter:url(#softGlow);
     }
-
-    .anchor-pulse,
-    .anchor-box-outline,
-    .anchor-box-ghost,
-    .anchor-cross {
-      fill: none;
-      vector-effect: non-scaling-stroke;
+    .marker.selected .node-code{
+      fill: rgba(255,159,58,.96);
+      filter:url(#softGlow);
     }
-
-    .anchor-pulse {
-      stroke: rgba(255,138,0,.18);
-      stroke-width: 1;
-      opacity: 0;
+    .marker.selected .node-title{
+      fill: rgba(244,255,255,1);
+      stroke-width:3.4px;
     }
-
-    .anchor-box-outline {
-      stroke: rgba(255,255,255,.25);
-      stroke-width: 1;
-      opacity: .55;
+    .marker.selected .node-subtitle{
+      fill: rgba(255,222,168,.98);
     }
-
-    .anchor-box-ghost {
-      stroke: rgba(255,138,0,.20);
-      stroke-width: 1;
-      stroke-dasharray: 3 6;
-      opacity: .50;
+    .marker.related .callout-panel{
+      stroke: rgba(255,127,0,.10);
+      fill: rgba(9,13,17,.18);
     }
-
-    .anchor-core {
-      fill: rgba(255,138,0,.92);
-      filter: url(#softGlow);
+    .marker.dimmed .callout{
+      opacity:.46;
     }
-
-    .anchor-cross {
-      stroke: rgba(255,255,255,.18);
-      stroke-width: .9;
-      opacity: .42;
-    }
-
-    .marker.selected .anchor-pulse {
-      opacity: 1;
-      animation: pulseBox 1.8s ease-out infinite;
-    }
-
-    .marker.selected .anchor-core {
-      fill: #fff;
-    }
-
-    .marker.selected .anchor-box-outline,
-    .marker.related .anchor-box-outline {
-      stroke: rgba(255,255,255,.50);
-      opacity: 1;
-    }
-
-    .marker.selected .anchor-box-ghost,
-    .marker.related .anchor-box-ghost {
-      stroke: rgba(255,138,0,.72);
-      opacity: 1;
-    }
-
-    @keyframes pulseBox {
-      0% { transform: scale(1); opacity: .85; }
-      100% { transform: scale(1.85); opacity: 0; }
-    }
-
-    .callout-stem {
-      stroke: rgba(255,138,0,.28);
-      stroke-width: .86;
-      fill: none;
-    }
-
-    .callout-panel {
-      fill: rgba(18,28,38,.42);
-      stroke: rgba(255,138,0,.25);
-      stroke-width: .85;
-      filter: url(#glassShadow);
-    }
-
-    .callout-panel-bg {
-      fill: rgba(255,255,255,.030);
-      stroke: rgba(255,255,255,.055);
-      stroke-width: .8;
-    }
-
-    .callout-scan {
-      fill: url(#calloutScan);
-      opacity: .38;
-      pointer-events: none;
-    }
-
-    .callout-accent {
-      stroke: rgba(255,138,0,.50);
-      stroke-width: 2;
-      fill: none;
-      opacity: .70;
-    }
-
-    .node-code {
-      fill: rgba(255,138,0,.70);
-      font-size: 10px;
+    .node-code{
+      fill: rgba(255,127,0,.74);
+      font-size:10px;
       font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-      letter-spacing: .06em;
-      text-anchor: middle;
-      dominant-baseline: central;
+      letter-spacing:.08em;
+      text-anchor:middle;
+      dominant-baseline:central;
     }
-
-    .node-title {
-      fill: #fff;
-      font-size: 18px;
-      font-weight: 800;
-      letter-spacing: .06em;
-      text-anchor: middle;
-      dominant-baseline: central;
+    .node-title{
+      fill: var(--white);
+      font-size:16px;
+      font-weight:650;
+      letter-spacing:.05em;
+      text-anchor:middle;
+      dominant-baseline:central;
       paint-order: stroke;
-      stroke: rgba(0,0,0,.48);
-      stroke-width: 3px;
-      stroke-linejoin: round;
+      stroke: rgba(0,0,0,.50);
+      stroke-width:3px;
+      stroke-linejoin:round;
+    }
+    .node-subtitle{
+      fill: rgba(255,205,140,.84);
+      font-size:9.5px;
+      font-weight:600;
+      letter-spacing:.07em;
+      text-anchor:middle;
+      dominant-baseline:central;
+    }
+    .node-icon{
+      fill:none;
+      stroke: rgba(255,160,72,.30);
+      stroke-width:.72;
+      stroke-linecap:round; stroke-linejoin:round;
+      filter:none;
+      opacity:.26;
+    }
+    .node-icon-dot{
+      fill: rgba(255,160,72,.035);
+      stroke: rgba(255,160,72,.28);
+      stroke-width:.62;
+      filter:none;
+      opacity:.30;
+    }
+    .marker.major .node-title{ font-size:22px; }
+    .marker.major .node-subtitle{ font-size:11px; }
+
+    /* behavior mode / stable HUD */
+    .behavior-layer{ pointer-events:none; }
+    .behavior-group{ opacity:0; transition:opacity .18s ease; }
+    .mode-behavior .behavior-group{ opacity:.64; }
+    .behavior-line{
+      fill:none;
+      stroke: rgba(244,255,255,.42);
+      stroke-width:.72;
+      vector-effect:non-scaling-stroke;
+    }
+    .behavior-line.orange{ stroke: rgba(255,127,0,.50); }
+    .behavior-ring{
+      fill:none;
+      stroke: rgba(244,255,255,.15);
+      stroke-width:.82;
+      vector-effect:non-scaling-stroke;
+    }
+    .behavior-ring.orange{
+      stroke: rgba(255,127,0,.34);
+      filter:none;
+    }
+    .behavior-arc{
+      fill:none;
+      stroke: rgba(255,205,140,.62);
+      stroke-width:3.2;
+      stroke-linecap:round;
+      filter:none;
+    }
+    .behavior-tick{
+      stroke: rgba(244,255,255,.42);
+      stroke-width:1;
+      vector-effect:non-scaling-stroke;
+    }
+    .behavior-label{
+      fill: rgba(244,255,255,.70);
+      font-size:11px;
+      letter-spacing:.02em;
+    }
+    .behavior-small{
+      fill: rgba(244,255,255,.48);
+      font-size:9px;
+      letter-spacing:.04em;
+      text-transform:uppercase;
+    }
+    .behavior-metertext{
+      fill: rgba(244,255,255,.76);
+      font-size:14px;
+      font-weight:600;
+      text-anchor:middle;
+    }
+    .behavior-square{
+      fill: var(--orange);
+      filter:none;
+      opacity:.82;
+    }
+    .behavior-square.white{
+      fill: var(--white);
+      filter:none;
+      opacity:.78;
+    }
+    .behavior-link-node{
+      fill: rgba(244,255,255,.72);
+      stroke: rgba(255,127,0,.40);
+      stroke-width:1;
+      filter:none;
     }
 
-    .node-subtitle {
-      fill: rgba(255,210,142,.92);
-      font-size: 10.5px;
-      font-weight: 650;
-      letter-spacing: .08em;
-      text-anchor: middle;
-      dominant-baseline: central;
+    /* mode helpers */
+    .mode-minimal .readout,
+    .mode-minimal .section-sub,
+    .mode-minimal .hint{
+      opacity:0; pointer-events:none;
     }
-
-    .node-icon {
-      fill: none;
-      stroke: rgba(255,160,72,.94);
-      stroke-width: 1.5;
-      stroke-linecap: round;
-      stroke-linejoin: round;
-      filter: url(#softGlow);
+    .mode-map .readout,
+    .mode-map .hint{
+      opacity:0; pointer-events:none;
     }
-
-    .node-icon-dot {
-      fill: rgba(255,160,72,.18);
-      stroke: rgba(255,160,72,.94);
-      stroke-width: 1.1;
-      filter: url(#softGlow);
+    .mode-map .callout-panel,
+    .mode-map .callout-accent,
+    .mode-map .callout-topline,
+    .mode-map .node-title,
+    .mode-map .node-subtitle,
+    .mode-map .node-code,
+    .mode-map .node-icon{
+      opacity:.12;
     }
-
-    .marker.major .node-title { font-size: 23px; }
-    .marker.major .node-subtitle { font-size: 12px; }
-    .marker.delivery .node-title { font-size: 17px; }
-
-    .marker.related .callout-panel,
-    .marker.selected .callout-panel {
-      stroke: rgba(255,184,112,.82);
+    .mode-map .marker.selected .callout-panel,
+    .mode-map .marker.selected .callout-accent,
+    .mode-map .marker.selected .callout-topline,
+    .mode-map .marker.selected .node-title,
+    .mode-map .marker.selected .node-subtitle,
+    .mode-map .marker.selected .node-code,
+    .mode-map .marker.selected .node-icon{
+      opacity:1;
     }
-
-    .marker.related .callout-stem,
-    .marker.selected .callout-stem {
-      stroke: rgba(255,138,0,.52);
-      filter: url(#softGlow);
+    .mode-behavior .readout{
+      opacity:.10;
     }
-
-    .marker.dimmed {
-      opacity: .32;
+    .mode-capture .top-ui,
+    .mode-capture .readout,
+    .mode-capture .mode-bar,
+    .mode-capture .hint{
+      display:none !important;
     }
+    .mode-capture .stage{ inset:0; border:0; }
 
-    @media (max-width: 960px) {
-      #app { min-height: 720px; }
-      .stage { inset: 10px; border-radius: 20px; }
-      .left-readout { width: 54px; }
-      .left-readout .vertical { display: none; }
-      .title-block { left: 74px; top: 20px; }
-      .title-no { height: 36px; font-size: 20px; padding: 0 12px; }
-      .title-main { font-size: 23px; }
-      .title-sub { left: 78px; top: 66px; }
-      .focus-card { display: none; }
-      .legend { display: none; }
-      .hint { display: none; }
+    @media (max-width: 1100px){
+      .readout{ width:250px; }
+      .panel-title{ font-size:19px; }
+      .section-name{ font-size:24px; }
+    }
+    @media (max-width: 860px){
+      #app{ min-height:720px; }
+      .stage{ inset:8px; }
+      .readout, .hint{ display:none; }
+      .top-ui{ left:18px; top:16px; transform:scale(.88); transform-origin:left top; }
+      .mode-bar{ transform:translateX(-50%) scale(.86); bottom:12px; }
+      .mode-btn{ padding:0 7px; font-size:9px; }
     }
   </style>
 </head>
 <body>
-  <div id="app">
-    <main class="stage" aria-label="部门能力地图：叙事性战术地图投影 UI">
-      <aside class="left-readout" aria-hidden="true">
-        <div class="vertical">DIEGETIC TACTICAL MAP UI</div>
-        <div class="page">04</div>
+  <div id="app" class="mode-standard">
+    <main class="stage">
+      <div class="top-ui">
+        <div class="top-row">
+          <span class="glyph">Q</span>
+          <span class="glyph active">⌂</span>
+          <span class="glyph">⚙</span>
+          <span class="glyph">↵</span>
+          <div class="home-title">首页</div>
+        </div>
+        <div class="section">
+          <div class="section-code">01. CORE</div>
+          <div class="section-name">部门能力地图</div>
+        </div>
+        <div class="section-sub">GEOLOGICAL DATA · MODEL · AI DECISION · DELIVERY TERMINAL</div>
+      </div>
+
+      <svg id="graph" role="img" aria-label="部门能力地图 V7.4"></svg>
+
+      <aside class="readout" aria-label="当前节点状态">
+        <section class="panel">
+          <div class="panel-top"><span>Selected Node</span><span class="panel-code" id="panelCode">CORE-00</span></div>
+          <h2 class="panel-title" id="panelTitle">信息化平台</h2>
+          <div class="panel-subtitle" id="panelSubtitle">流程 · 数据 · 协同</div>
+          <div class="panel-text" id="panelText">作为部门能力体系的中枢，将项目数据、技术流程、质量审查和经营管理统一到可视化平台中。</div>
+        </section>
+        <section class="panel">
+          <div class="panel-top"><span>Status</span><span class="panel-code" id="panelStatus">ONLINE</span></div>
+          <div class="metric-grid">
+            <div class="metric"><div class="num" id="metricLevel">07</div><div class="txt">LEVEL</div></div>
+            <div class="metric"><div class="num" id="metricHealth">98</div><div class="txt">HEALTH</div></div>
+            <div class="metric"><div class="num" id="metricLinks">4</div><div class="txt">LINKS</div></div>
+            <div class="metric"><div class="num" id="metricRisk">LOW</div><div class="txt">RISK</div></div>
+          </div>
+        </section>
       </aside>
 
-      <header class="title-block">
-        <div class="title-no">01. CORE</div>
-        <div class="title-main">部门能力地图</div>
-      </header>
-      <div class="title-sub">DATA · MODEL · AI DECISION · DELIVERY</div>
+      <nav class="mode-bar" aria-label="显示模式">
+        <button class="mode-btn active" data-mode="standard">STANDARD</button>
+        <button class="mode-btn" data-mode="behavior">BEHAVIOR</button>
+        <button class="mode-btn" data-mode="map">MAP</button>
+        <button class="mode-btn" data-mode="minimal">MINIMAL</button>
+        <button class="mode-btn" data-mode="capture">CAPTURE</button>
+      </nav>
 
-      <button class="reset-btn" type="button" aria-label="取消选择">RESET</button>
-
-      <svg id="graph" role="img" aria-label="数据、信息化、三维建模、AI辅助决策与图文汇交能力地图"></svg>
-
-      <section class="focus-card hidden" aria-live="polite">
-        <div class="focus-code">SELECT NODE</div>
-        <h2 class="focus-title">点击节点查看能力说明</h2>
-        <p class="focus-body">默认只显示点、线、形；点选后激活关联路径、流动光效与能力说明。</p>
-        <ul>
-          <li>点是能力锚点，线是数据与动作方向。</li>
-          <li>形是信息容器，避免默认状态过度占屏。</li>
-        </ul>
-      </section>
-
-      <div class="legend">
-        <span><strong>POINT</strong> / CAPABILITY ANCHOR</span>
-        <span><strong>LINE</strong> / ACTION · SPACE · DIRECTION</span>
-        <span><strong>SHAPE</strong> / INFORMATION CONTAINER</span>
-        <span><strong>LAYER</strong> / STATIC BASE + SELECTIVE FLOW</span>
-      </div>
-      <div class="hint">点击节点激活流动光效 · 点击空白处取消选择</div>
+      <div class="hint">选中模块加入边缘微光 · 图标微符号化 · BEHAVIOR 为辅助诊断层</div>
     </main>
   </div>
 
   <script>
-    const svg = d3.select('#graph');
+    const app = document.querySelector('#app');
     const stage = document.querySelector('.stage');
-    const focusCard = document.querySelector('.focus-card');
-    const resetBtn = document.querySelector('.reset-btn');
+    const svg = d3.select('#graph');
+    const modeButtons = Array.from(document.querySelectorAll('.mode-btn'));
 
     let width = stage.clientWidth;
     let height = stage.clientHeight;
-    svg.attr('viewBox', [0, 0, width, height]);
+    let currentMode = 'standard';
+    let selectedNodeId = 'platform';
+
+    svg.attr('viewBox', [0,0,width,height]);
 
     const defs = svg.append('defs');
 
-    const softGlow = defs.append('filter').attr('id', 'softGlow').attr('x', '-80%').attr('y', '-80%').attr('width', '260%').attr('height', '260%');
-    softGlow.append('feGaussianBlur').attr('stdDeviation', 2.4).attr('result', 'blur');
-    softGlow.append('feColorMatrix').attr('in', 'blur').attr('type', 'matrix')
-      .attr('values', '1 0 0 0 0.96  0 0.56 0 0 0.28  0 0 0.12 0 0.02  0 0 0 0.72 0')
-      .attr('result', 'orangeBlur');
-    const softMerge = softGlow.append('feMerge');
-    softMerge.append('feMergeNode').attr('in', 'orangeBlur');
-    softMerge.append('feMergeNode').attr('in', 'SourceGraphic');
+    const softGlow = defs.append('filter').attr('id','softGlow').attr('x','-80%').attr('y','-80%').attr('width','260%').attr('height','260%');
+    softGlow.append('feGaussianBlur').attr('stdDeviation',2.4).attr('result','blur');
+    softGlow.append('feColorMatrix')
+      .attr('in','blur').attr('type','matrix')
+      .attr('values','1 0 0 0 0.96  0 0.56 0 0 0.28  0 0 0.12 0 0.02  0 0 0 0.74 0')
+      .attr('result','orangeBlur');
+    let merge = softGlow.append('feMerge');
+    merge.append('feMergeNode').attr('in','orangeBlur');
+    merge.append('feMergeNode').attr('in','SourceGraphic');
 
-    const strongGlow = defs.append('filter').attr('id', 'strongGlow').attr('x', '-120%').attr('y', '-120%').attr('width', '340%').attr('height', '340%');
-    strongGlow.append('feGaussianBlur').attr('stdDeviation', 4.5).attr('result', 'blur');
-    strongGlow.append('feColorMatrix').attr('in', 'blur').attr('type', 'matrix')
-      .attr('values', '1 0 0 0 0.96  0 0.54 0 0 0.23  0 0 0.10 0 0.02  0 0 0 0.88 0')
-      .attr('result', 'orangeBlur');
-    const strongMerge = strongGlow.append('feMerge');
-    strongMerge.append('feMergeNode').attr('in', 'orangeBlur');
-    strongMerge.append('feMergeNode').attr('in', 'SourceGraphic');
+    const strongGlow = defs.append('filter').attr('id','strongGlow').attr('x','-120%').attr('y','-120%').attr('width','340%').attr('height','340%');
+    strongGlow.append('feGaussianBlur').attr('stdDeviation',4.0).attr('result','blur');
+    strongGlow.append('feColorMatrix')
+      .attr('in','blur').attr('type','matrix')
+      .attr('values','1 0 0 0 0.96  0 0.54 0 0 0.23  0 0 0.10 0 0.02  0 0 0 0.88 0')
+      .attr('result','orangeBlur');
+    merge = strongGlow.append('feMerge');
+    merge.append('feMergeNode').attr('in','orangeBlur');
+    merge.append('feMergeNode').attr('in','SourceGraphic');
 
-    const glassShadow = defs.append('filter').attr('id', 'glassShadow').attr('x', '-70%').attr('y', '-70%').attr('width', '240%').attr('height', '240%');
-    glassShadow.append('feDropShadow').attr('dx', 0).attr('dy', 12).attr('stdDeviation', 12).attr('flood-color', 'rgba(0,0,0,.62)');
+    const glassShadow = defs.append('filter').attr('id','glassShadow').attr('x','-70%').attr('y','-70%').attr('width','240%').attr('height','240%');
+    glassShadow.append('feDropShadow').attr('dx',0).attr('dy',8).attr('stdDeviation',8).attr('flood-color','rgba(0,0,0,.50)');
 
-    const calloutScan = defs.append('linearGradient').attr('id', 'calloutScan').attr('x1', '0%').attr('y1', '0%').attr('x2', '0%').attr('y2', '100%');
-    calloutScan.append('stop').attr('offset', '0%').attr('stop-color', 'rgba(255,255,255,.08)');
-    calloutScan.append('stop').attr('offset', '50%').attr('stop-color', 'rgba(255,255,255,.02)');
-    calloutScan.append('stop').attr('offset', '100%').attr('stop-color', 'rgba(255,255,255,0)');
+    const selectedModuleGlow = defs.append('filter').attr('id','selectedModuleGlow').attr('x','-80%').attr('y','-80%').attr('width','260%').attr('height','260%');
+    selectedModuleGlow.append('feDropShadow').attr('dx',0).attr('dy',0).attr('stdDeviation',2.2).attr('flood-color','rgba(255,127,0,.34)');
+    selectedModuleGlow.append('feDropShadow').attr('dx',0).attr('dy',0).attr('stdDeviation',5.5).attr('flood-color','rgba(255,127,0,.12)');
 
-    const topoPattern = defs.append('pattern').attr('id', 'topoPattern').attr('width', 320).attr('height', 220).attr('patternUnits', 'userSpaceOnUse');
+    const topoPattern = defs.append('pattern')
+      .attr('id','topo').attr('width',340).attr('height',220).attr('patternUnits','userSpaceOnUse');
     topoPattern.append('path')
-      .attr('d', 'M-30,128 C40,36 118,180 196,78 C238,24 300,88 350,30 M-40,168 C58,64 126,200 224,104 C270,60 316,100 378,56 M-10,78 C54,12 102,98 150,48 C184,14 240,30 272,8')
-      .attr('fill', 'none')
-      .attr('stroke', 'rgba(255,255,255,.058)')
-      .attr('stroke-width', 1);
+      .attr('d','M-20,120 C40,48 112,170 190,76 C236,22 304,84 362,26 M-28,158 C56,70 128,190 218,100 C266,64 310,98 370,58 M-8,70 C46,12 100,92 146,48 C180,16 232,30 270,10')
+      .attr('fill','none').attr('stroke','rgba(244,255,255,.05)').attr('stroke-width',1);
     topoPattern.append('path')
-      .attr('d', 'M-18,118 C46,40 108,152 182,76 C228,26 280,82 340,28 M-30,150 C60,68 130,188 220,102 C260,70 312,98 360,58')
-      .attr('fill', 'none')
-      .attr('stroke', 'rgba(255,138,0,.072)')
-      .attr('stroke-width', 1);
+      .attr('d','M-16,112 C50,44 110,148 180,74 C226,24 280,84 334,28 M-24,146 C58,62 126,182 214,98 C252,72 302,100 350,60')
+      .attr('fill','none').attr('stroke','rgba(255,127,0,.05)').attr('stroke-width',1);
 
-    const mapLayer = svg.append('g').attr('class', 'map-layer');
-    const routeLayer = svg.append('g').attr('class', 'route-layer');
-    const labelLayer = svg.append('g').attr('class', 'label-layer');
-    const particleLayer = svg.append('g').attr('class', 'particle-layer');
-    const nodeLayer = svg.append('g').attr('class', 'node-layer');
+    const bgLayer = svg.append('g').attr('class','bg-layer');
+    const routeLayer = svg.append('g').attr('class','route-layer');
+    const labelLayer = svg.append('g').attr('class','label-layer');
+    const particleLayer = svg.append('g').attr('class','particle-layer');
+    const nodeLayer = svg.append('g').attr('class','node-layer');
+    const behaviorLayer = svg.append('g').attr('class','behavior-layer');
 
-    mapLayer.append('rect')
-      .attr('class', 'topo-rect')
-      .attr('x', 0)
-      .attr('y', 0)
-      .attr('width', width)
-      .attr('height', height)
-      .attr('fill', 'url(#topoPattern)')
-      .attr('opacity', .42);
+    bgLayer.append('rect')
+      .attr('class','bg-topo')
+      .attr('x',0).attr('y',0).attr('width',width).attr('height',height)
+      .attr('fill','url(#topo)');
 
     const nodes = [
       {
-        id: 'platform',
-        code: 'CORE-00',
-        title: '信息化平台',
-        subtitle: '流程 · 数据 · 协同',
-        body: '作为部门能力体系的中枢，将项目数据、技术流程、质量审查和经营管理统一到可视化平台中。',
-        bullets: ['统一数据入口与权限控制', '支撑项目进度、质量、成本态势感知', '向模型、AI和成果端提供标准化数据服务'],
-        type: 'major',
-        icon: 'platform',
-        rx: .50, ry: .50,
-        labelDx: 0, labelDy: -118,
-        w: 248, h: 82, r: 32
+        id:'platform', code:'CORE-00', title:'信息化平台', subtitle:'流程 · 数据 · 协同',
+        text:'作为部门能力体系的中枢，将项目数据、技术流程、质量审查和经营管理统一到可视化平台中。',
+        status:'ONLINE', level:'07', health:98, risk:'LOW',
+        icon:'platform', type:'major', rx:.50, ry:.50, labelDx:0, labelDy:-90, w:210, h:58, r:18
       },
       {
-        id: 'data',
-        code: 'DATA-01',
-        title: '数据底座',
-        subtitle: '采集 · 标准 · 治理',
-        body: '面向钻孔、坑道、样品、化验、物化遥、水工环和项目经营数据，形成统一、可追溯的数据底板。',
-        bullets: ['字段标准化与数据质控', '项目资料结构化管理', '为三维模型与AI分析提供可信输入'],
-        type: 'normal',
-        icon: 'data',
-        rx: .22, ry: .34,
-        labelDx: -66, labelDy: -66,
-        w: 184, h: 70, r: 22
+        id:'data', code:'DATA-01', title:'数据底座', subtitle:'采集 · 标准 · 治理',
+        text:'统一钻孔、坑道、样品、化验与项目资料，形成可信的数据底板。',
+        status:'NORMAL', level:'06', health:96, risk:'LOW',
+        icon:'data', type:'normal', rx:.24, ry:.35, labelDx:-46, labelDy:-42, w:150, h:48, r:11
       },
       {
-        id: 'model',
-        code: 'MODEL-02',
-        title: '三维建模',
-        subtitle: '空间解释 · 动态更新',
-        body: '把地质认识、工程控制和多源数据转译为空间模型，服务资源核查、找矿预测和工程部署。',
-        bullets: ['矿体、构造、层位与工程空间关系表达', '钻孔数据驱动动态更新', '支持靶区圈定与解释校核'],
-        type: 'normal',
-        icon: 'model',
-        rx: .77, ry: .29,
-        labelDx: 76, labelDy: -62,
-        w: 204, h: 70, r: 22
+        id:'model', code:'MODEL-02', title:'三维建模', subtitle:'空间解释 · 动态更新',
+        text:'将多源地质信息转化为空间模型，支撑解释校核与工程部署。',
+        status:'ACTIVE', level:'06', health:92, risk:'MID',
+        icon:'model', type:'normal', rx:.72, ry:.31, labelDx:58, labelDy:-42, w:158, h:48, r:11
       },
       {
-        id: 'geo',
-        code: 'FIELD-03',
-        title: '地质勘查',
-        subtitle: '现场 · 分析 · 验证',
-        body: '将野外调查、钻探编录、采样测试和综合分析形成可回流的数据闭环，支撑模型解释与工程调整。',
-        bullets: ['现场数据采集与编录', '工程控制与矿化追踪', '模型结论反向验证'],
-        type: 'normal',
-        icon: 'geo',
-        rx: .24, ry: .68,
-        labelDx: -80, labelDy: 50,
-        w: 196, h: 70, r: 22
+        id:'geo', code:'FIELD-03', title:'地质勘查', subtitle:'现场 · 分析 · 验证',
+        text:'野外调查、钻探编录与矿化追踪形成可回流的数据闭环。',
+        status:'FIELD', level:'05', health:88, risk:'MID',
+        icon:'geo', type:'normal', rx:.27, ry:.69, labelDx:-60, labelDy:36, w:156, h:48, r:11
       },
       {
-        id: 'ai',
-        code: 'AI-04',
-        title: 'AI辅助决策',
-        subtitle: '预测 · 预警 · 推荐',
-        body: '围绕项目进度、模型变化、矿化线索和质量风险，建立AI辅助分析、预警和建议机制。',
-        bullets: ['数据异常与进度风险识别', '靶区预测与工程部署建议', '报告和图件智能校核'],
-        type: 'normal',
-        icon: 'ai',
-        rx: .78, ry: .67,
-        labelDx: 78, labelDy: 46,
-        w: 204, h: 70, r: 22
+        id:'ai', code:'AI-04', title:'AI辅助决策', subtitle:'预测 · 预警 · 推荐',
+        text:'围绕进度、模型变化与质量风险建立辅助分析、预警与建议机制。',
+        status:'READY', level:'05', health:84, risk:'WATCH',
+        icon:'ai', type:'normal', rx:.73, ry:.69, labelDx:60, labelDy:36, w:168, h:48, r:11
       },
       {
-        id: 'delivery',
-        code: 'DOC-05',
-        title: '图文 / 汇交',
-        subtitle: '表达 · 审查 · 归档',
-        body: '作为成果出口，承担图件表达、报告版式、成果审查、资料汇交和版本归档。',
-        bullets: ['图文成果标准化输出', '报告版式与质量审查', '汇交资料归档并反馈到平台'],
-        type: 'delivery',
-        icon: 'delivery',
-        rx: .52, ry: .78,
-        labelDx: 0, labelDy: 82,
-        w: 196, h: 70, r: 20
+        id:'delivery', code:'DOC-05', title:'图文 / 汇交', subtitle:'表达 · 审查 · 归档',
+        text:'承担成果图件表达、报告审查、汇交归档与反馈回流。',
+        status:'OUTPUT', level:'04', health:90, risk:'LOW',
+        icon:'delivery', type:'normal', rx:.52, ry:.82, labelDx:0, labelDy:58, w:162, h:48, r:11
       }
     ];
 
     const routes = [
-      { id: 'r1', source: 'geo', target: 'data', label: '现场采集', bends: [[.18,.56],[.16,.42]], speed: 150 },
-      { id: 'r2', source: 'data', target: 'platform', label: '标准入库', bends: [[.29,.37],[.38,.44]], speed: 165 },
-      { id: 'r3', source: 'platform', target: 'model', label: '模型驱动', bends: [[.60,.42],[.68,.33]], speed: 158 },
-      { id: 'r4', source: 'model', target: 'ai', label: '空间推理', bends: [[.85,.38],[.84,.54]], speed: 132 },
-      { id: 'r5', source: 'platform', target: 'ai', label: '智能分析', bends: [[.64,.55],[.70,.62]], speed: 172 },
-      { id: 'r6', source: 'ai', target: 'geo', label: '工程建议', bends: [[.64,.73],[.42,.74]], speed: 118 },
-      { id: 'r7', source: 'model', target: 'delivery', label: '成果转译', bends: [[.69,.50],[.61,.67]], speed: 142 },
-      { id: 'r8', source: 'ai', target: 'delivery', label: '智能校核', bends: [[.68,.72],[.59,.78]], speed: 160 },
-      { id: 'r9', source: 'delivery', target: 'platform', label: '版本反馈', bends: [[.47,.72],[.46,.62]], speed: 135 },
-      { id: 'r10', source: 'platform', target: 'geo', label: '解释校核', bends: [[.41,.58],[.34,.64]], speed: 125 }
+      { id:'r1', source:'geo', target:'data', label:'现场采集', bends:[[.18,.57],[.18,.43]], primary:true, speed:145 },
+      { id:'r2', source:'data', target:'platform', label:'标准入库', bends:[[.31,.39],[.40,.45]], primary:true, speed:160 },
+      { id:'r3', source:'platform', target:'model', label:'模型驱动', bends:[[.59,.43],[.66,.35]], primary:true, speed:158 },
+      { id:'r4', source:'platform', target:'ai', label:'智能分析', bends:[[.61,.56],[.67,.63]], primary:true, speed:172 },
+      { id:'r5', source:'ai', target:'delivery', label:'智能校核', bends:[[.67,.73],[.60,.80]], primary:true, speed:160 },
+      { id:'r6', source:'delivery', target:'platform', label:'版本反馈', bends:[[.48,.74],[.47,.62]], primary:true, speed:138 },
+      { id:'r7', source:'platform', target:'geo', label:'解释校核', bends:[[.42,.58],[.35,.65]], primary:false, speed:125 },
+      { id:'r8', source:'model', target:'ai', label:'空间推理', bends:[[.80,.40],[.80,.55]], primary:false, speed:132 },
+      { id:'r9', source:'ai', target:'geo', label:'工程建议', bends:[[.63,.74],[.43,.75]], primary:false, speed:118 },
+      { id:'r10', source:'model', target:'delivery', label:'成果转译', bends:[[.67,.52],[.60,.70]], primary:false, speed:142 }
     ];
 
     const nodeById = new Map(nodes.map(d => [d.id, d]));
-    let selectedNodeId = null;
 
-    function setNodePositions() {
+    function setNodePositions(){
       nodes.forEach(d => {
-        if (d.x == null || !d.dragged) {
+        if(d.x == null || !d.dragged){
           d.x = width * d.rx;
           d.y = height * d.ry;
         }
       });
     }
-
     setNodePositions();
 
-    function relPoint(p) { return [width * p[0], height * p[1]]; }
-
-    function calloutPath(w, h, c = 10) {
-      const hw = w / 2, hh = h / 2;
-      return `M${-hw + c},${-hh} L${hw - c},${-hh} L${hw},${-hh + c} L${hw},${hh - c} L${hw - c},${hh} L${-hw + c},${hh} L${-hw},${hh - c} L${-hw},${-hh + c} Z`;
+    function rel(p){ return [width * p[0], height * p[1]]; }
+    function smoothLine(points){ return d3.line().curve(d3.curveCatmullRom.alpha(.28))(points); }
+    function calloutPath(w,h,c=8){
+      const hw = w/2, hh = h/2;
+      return `M${-hw+c},${-hh} L${hw-c},${-hh} L${hw},${-hh+c} L${hw},${hh-c} L${hw-c},${hh} L${-hw+c},${hh} L${-hw},${hh-c} L${-hw},${-hh+c} Z`;
     }
-
-    function labelStripPath(w = 92, h = 23, c = 3) {
+    function stripPath(w=76,h=20,c=3){
       const hw = w/2, hh = h/2;
       return `M${-hw+c},${-hh} L${hw},${-hh} L${hw-c},${hh} L${-hw},${hh} Z`;
     }
-
-    function edgePoint(a, b, extra = 0) {
-      const dx = b.x - a.x;
-      const dy = b.y - a.y;
-      const len = Math.max(Math.hypot(dx, dy), 1);
-      const r = (a.r || 20) + extra;
-      return { x: a.x + dx / len * r, y: a.y + dy / len * r };
+    function edgePoint(a,b,extra=0){
+      const dx = b.x-a.x, dy = b.y-a.y;
+      const len = Math.max(Math.hypot(dx,dy), 1);
+      const r = (a.r || 12) + extra;
+      return { x: a.x + dx/len*r, y: a.y + dy/len*r };
     }
-
-    const curve = d3.line().curve(d3.curveCatmullRom.alpha(.55));
-
-    function routePoints(d) {
-      const s = nodeById.get(d.source);
-      const t = nodeById.get(d.target);
-      const start = edgePoint(s, t, 6);
-      const end = edgePoint(t, s, 6);
-      return [[start.x, start.y], ...d.bends.map(relPoint), [end.x, end.y]];
+    function routePoints(d){
+      const s = nodeById.get(d.source), t = nodeById.get(d.target);
+      const start = edgePoint(s,t,4), end = edgePoint(t,s,4);
+      return [[start.x,start.y], ...d.bends.map(rel), [end.x,end.y]];
     }
-
-    function routePath(d) {
-      return curve(routePoints(d));
-    }
-
-    function routeMid(d) {
+    function routePath(d){ return smoothLine(routePoints(d)); }
+    function routeMid(d){
       const pts = routePoints(d);
-      const mid = pts[Math.floor(pts.length / 2)];
-      return { x: mid[0], y: mid[1] };
+      const m = pts[Math.floor(pts.length/2)];
+      return { x:m[0], y:m[1] };
     }
 
-    function drawMapBackground() {
-      mapLayer.selectAll('.dynamic-map').remove();
-      const g = mapLayer.append('g').attr('class', 'dynamic-map');
+    function drawBackground(){
+      bgLayer.selectAll('.dynamic-bg').remove();
+      const g = bgLayer.append('g').attr('class','dynamic-bg');
 
-      const blockPolys = [
-        [[.10,.55],[.23,.47],[.39,.51],[.31,.63],[.13,.64]],
-        [[.58,.24],[.79,.18],[.89,.35],[.70,.42],[.56,.34]],
-        [[.66,.55],[.89,.56],[.85,.78],[.63,.74]],
-        [[.18,.72],[.39,.67],[.46,.84],[.24,.88]],
-        [[.36,.28],[.49,.20],[.58,.34],[.46,.43]]
+      const areas = [
+        {pts:[[.14,.60],[.28,.52],[.35,.61],[.25,.72],[.11,.70]], cls:'bg-area'},
+        {pts:[[.58,.24],[.75,.20],[.84,.31],[.72,.40],[.56,.35]], cls:'bg-area orange'},
+        {pts:[[.62,.60],[.86,.58],[.83,.78],[.61,.75]], cls:'bg-area orange'},
+        {pts:[[.18,.74],[.34,.71],[.40,.87],[.20,.89]], cls:'bg-area'}
       ];
-
-      g.selectAll('polygon.map-bg-fill')
-        .data(blockPolys)
+      g.selectAll('polygon.area')
+        .data(areas)
         .join('polygon')
-        .attr('class', (d,i) => i === 2 || i === 4 ? 'map-bg-fill orange' : 'map-bg-fill')
-        .attr('points', d => d.map(p => relPoint(p).join(',')).join(' '));
+        .attr('class', d => `${d.cls} dynamic-bg`)
+        .attr('points', d => d.pts.map(p => rel(p).join(',')).join(' '));
 
-      const lineData = [
-        { cls:'road', pts:[[.03,.67],[.18,.58],[.34,.54],[.52,.48],[.70,.41],[.92,.30]] },
-        { cls:'road', pts:[[.08,.78],[.24,.69],[.42,.61],[.58,.57],[.78,.50],[.96,.43]] },
-        { cls:'road', pts:[[.20,.24],[.34,.38],[.50,.49],[.66,.58],[.86,.71]] },
-        { cls:'faint', pts:[[.05,.40],[.25,.35],[.43,.39],[.63,.32],[.91,.27]] },
-        { cls:'faint', pts:[[.11,.20],[.28,.29],[.47,.32],[.66,.24],[.86,.19]] },
-        { cls:'orange', pts:[[.16,.86],[.30,.77],[.45,.80],[.63,.70],[.82,.75]] },
-        { cls:'orange', pts:[[.62,.12],[.72,.27],[.87,.33],[.96,.54]] },
-        { cls:'faint', pts:[[.02,.32],[.18,.44],[.33,.42],[.50,.57],[.66,.65],[.88,.61]] },
-        { cls:'faint', pts:[[.28,.09],[.40,.23],[.55,.22],[.72,.34],[.90,.37]] }
+      const lines = [
+        {cls:'road', pts:[[.04,.70],[.18,.61],[.34,.58],[.52,.50],[.68,.44],[.92,.33]]},
+        {cls:'road', pts:[[.08,.80],[.26,.71],[.43,.64],[.59,.58],[.78,.52],[.96,.46]]},
+        {cls:'faint', pts:[[.22,.28],[.36,.40],[.50,.49],[.67,.60],[.86,.72]]},
+        {cls:'faint', pts:[[.05,.42],[.22,.38],[.38,.42],[.57,.36],[.84,.30]]},
+        {cls:'orange', pts:[[.12,.88],[.28,.80],[.44,.82],[.62,.74],[.78,.79]]},
+        {cls:'faint', pts:[[.30,.10],[.42,.24],[.56,.26],[.72,.36],[.90,.39]]},
+        {cls:'road', pts:[[.34,.06],[.44,.26],[.52,.48],[.58,.72],[.64,.94]]}
       ];
-
-      const smooth = d3.line().curve(d3.curveCatmullRom.alpha(.45));
-
-      g.selectAll('path.bg-line')
-        .data(lineData)
+      g.selectAll('path.line')
+        .data(lines)
         .join('path')
-        .attr('class', d => `map-bg-line dynamic-map ${d.cls}`)
-        .attr('d', d => smooth(d.pts.map(relPoint)));
+        .attr('class', d => `bg-line ${d.cls} dynamic-bg`)
+        .attr('d', d => smoothLine(d.pts.map(rel)));
 
-      const whiteRoutes = [
-        [[.00,.62],[.18,.50],[.38,.47],[.55,.40],[.73,.36],[1.02,.18]],
-        [[.02,.74],[.20,.63],[.42,.58],[.60,.50],[.80,.44],[1.03,.36]],
-        [[.10,.15],[.30,.34],[.46,.45],[.68,.58],[.88,.75]],
-        [[.06,.90],[.24,.76],[.42,.72],[.59,.65],[.82,.62]],
-        [[.32,.04],[.43,.25],[.54,.47],[.66,.70],[.76,.94]],
-        [[.50,.04],[.50,.28],[.50,.50],[.50,.73],[.50,.96]]
+      const volumes = [
+        {x:.24,y:.55,w:.050,h:.060,z:.055, hi:false},
+        {x:.59,y:.50,w:.050,h:.075,z:.060, hi:false},
+        {x:.71,y:.31,w:.046,h:.052,z:.045, hi:false},
+        {x:.57,y:.67,w:.052,h:.058,z:.048, hi:true}
       ];
-
-      g.selectAll('path.white-route')
-        .data(whiteRoutes)
-        .join('path')
-        .attr('class', 'map-bg-line road dynamic-map')
-        .attr('d', d => smooth(d.map(relPoint)));
+      const vols = g.selectAll('g.vol')
+        .data(volumes)
+        .join('g')
+        .attr('class','vol dynamic-bg');
+      vols.each(function(d){
+        const grp = d3.select(this);
+        const x = width*d.x, y = height*d.y, w = width*d.w, h = height*d.h, z = height*d.z, skew = width*.03;
+        const front = `M${x},${y} L${x+w},${y} L${x+w},${y+h} L${x},${y+h} Z`;
+        const top = `M${x},${y} L${x+skew},${y-z} L${x+w+skew},${y-z} L${x+w},${y} Z`;
+        const side = `M${x+w},${y} L${x+w+skew},${y-z} L${x+w+skew},${y+h-z} L${x+w},${y+h} Z`;
+        grp.append('path').attr('class', d.hi ? 'vol-highlight' : 'vol-body').attr('d', front);
+        grp.append('path').attr('class', 'vol-top').attr('d', top);
+        grp.append('path').attr('class', 'vol-body').attr('d', side);
+      });
 
       const labels = [
-        { text: 'DATA STANDARD ZONE', x:.15, y:.29, rotate:-10, orange:false },
-        { text: 'MODEL INTERPRETATION', x:.66, y:.20, rotate:-7, orange:true },
-        { text: 'AI DECISION LOOP', x:.70, y:.82, rotate:4, orange:true },
-        { text: 'FIELD FEEDBACK', x:.13, y:.78, rotate:-12, orange:false },
-        { text: 'DELIVERY / ARCHIVE', x:.40, y:.90, rotate:0, orange:false }
+        {text:'DATA ZONE', x:.18, y:.32, rot:-10, orange:false},
+        {text:'MODEL INTERPRETATION', x:.63, y:.18, rot:-6, orange:true},
+        {text:'AI DECISION LOOP', x:.67, y:.82, rot:2, orange:true},
+        {text:'FIELD FEEDBACK', x:.08, y:.77, rot:-13, orange:false}
       ];
-
-      g.selectAll('text.sector-label')
+      g.selectAll('text.zone')
         .data(labels)
         .join('text')
-        .attr('class', d => d.orange ? 'sector-label orange dynamic-map' : 'sector-label dynamic-map')
-        .attr('x', d => width * d.x)
-        .attr('y', d => height * d.y)
-        .attr('transform', d => `rotate(${d.rotate}, ${width*d.x}, ${height*d.y})`)
+        .attr('class', d => d.orange ? 'zone-label orange dynamic-bg' : 'zone-label dynamic-bg')
+        .attr('x', d => width*d.x)
+        .attr('y', d => height*d.y)
+        .attr('transform', d => `rotate(${d.rot}, ${width*d.x}, ${height*d.y})`)
         .text(d => d.text);
     }
-
-    drawMapBackground();
+    drawBackground();
 
     const routeGroups = routeLayer.selectAll('g.route')
       .data(routes, d => d.id)
       .join('g')
-      .attr('class', 'route');
-
-    routeGroups.append('path').attr('class', 'route-bg');
-    routeGroups.append('path').attr('class', 'route-beam');
-    routeGroups.append('path').attr('class', 'route-ghost');
-    routeGroups.append('path').attr('class', 'route-main');
-    routeGroups.append('path').attr('class', 'route-core');
+      .attr('class', d => d.primary ? 'route primary' : 'route secondary');
+    routeGroups.append('path').attr('class','route-bg');
+    routeGroups.append('path').attr('class','route-beam');
+    routeGroups.append('path').attr('class','route-ghost');
+    routeGroups.append('path').attr('class','route-main');
+    routeGroups.append('path').attr('class','route-flow');
 
     const routeLabels = labelLayer.selectAll('g.route-label')
       .data(routes, d => d.id)
       .join('g')
-      .attr('class', 'route-label');
-
-    routeLabels.append('path').attr('d', labelStripPath(92, 23, 3));
-    routeLabels.append('rect')
-      .attr('class', 'label-accent')
-      .attr('x', -46)
-      .attr('y', -11.5)
-      .attr('width', 5)
-      .attr('height', 23);
+      .attr('class','route-label');
+    routeLabels.append('path').attr('d', stripPath(78,20,3));
+    routeLabels.append('rect').attr('class','accent').attr('x',-39).attr('y',-10).attr('width',5).attr('height',20);
     routeLabels.append('text').text(d => d.label);
 
     const particles = particleLayer.selectAll('circle.particle')
       .data(routes.flatMap(d => [
-        { route: d, offset: .02, speed: d.speed, r: 3.0, cls: 'particle-dot' },
-        { route: d, offset: .38, speed: d.speed * .92, r: 2.4, cls: 'particle-dot' },
-        { route: d, offset: .72, speed: d.speed * 1.14, r: 1.8, cls: 'particle-dot-white' }
+        {route:d, offset:.02, speed:d.speed, r:2.6, cls:'particle-dot'},
+        {route:d, offset:.46, speed:d.speed*.95, r:1.9, cls:'particle-dot'},
+        {route:d, offset:.78, speed:d.speed*1.1, r:1.6, cls:'particle-white'}
       ]))
       .join('circle')
-      .attr('class', d => `particle ${d.cls}`)
+      .attr('class', d => d.cls)
       .attr('r', d => d.r);
 
-    const arrows = particleLayer.selectAll('polygon.particle-arrow')
+    const arrows = particleLayer.selectAll('polygon.arrow')
       .data(routes.flatMap(d => [
-        { route: d, offset: .18, speed: d.speed * .70 },
-        { route: d, offset: .57, speed: d.speed * .70 }
+        {route:d, offset:.22, speed:d.speed*.68},
+        {route:d, offset:.62, speed:d.speed*.68}
       ]))
       .join('polygon')
-      .attr('class', 'particle-arrow')
-      .attr('points', '-5,-3 6,0 -5,3 -1,0');
+      .attr('class','particle-arrow')
+      .attr('points','-5,-3 6,0 -5,3 -1,0');
 
     const marker = nodeLayer.selectAll('g.marker')
       .data(nodes, d => d.id)
       .join('g')
-      .attr('class', d => `marker ${d.type}${d.id === 'delivery' ? ' delivery' : ''}`)
-      .call(d3.drag().on('start', dragStarted).on('drag', dragged).on('end', dragEnded));
+      .attr('class', d => `marker ${d.type}`)
+      .call(d3.drag().on('start',dragStarted).on('drag',dragged).on('end',dragEnded));
 
-    const anchor = marker.append('g').attr('class', 'anchor');
-    anchor.append('rect').attr('class', 'anchor-pulse');
-    anchor.append('rect').attr('class', 'anchor-box-ghost');
-    anchor.append('rect').attr('class', 'anchor-box-outline');
-    anchor.append('rect').attr('class', 'anchor-core');
-    anchor.append('path').attr('class', 'anchor-cross');
+    const anchor = marker.append('g').attr('class','anchor');
+    anchor.append('rect').attr('class','anchor-core');
+    anchor.append('rect').attr('class','anchor-frame');
+    anchor.append('path').attr('class','anchor-ticks');
+    anchor.append('rect').attr('class','anchor-aux');
 
-    const callout = marker.append('g').attr('class', 'callout');
-    callout.append('path').attr('class', 'callout-stem');
-    callout.append('path').attr('class', 'callout-panel-bg');
-    callout.append('path').attr('class', 'callout-panel');
-    callout.append('path').attr('class', 'callout-scan');
-    callout.append('path').attr('class', 'callout-accent');
-    callout.append('text').attr('class', 'node-code');
-    callout.append('g').attr('class', 'icon-wrap');
-    callout.append('text').attr('class', 'node-title');
-    callout.append('text').attr('class', 'node-subtitle');
+    const callout = marker.append('g').attr('class','callout');
+    callout.append('path').attr('class','callout-stem');
+    callout.append('path').attr('class','callout-select-glow');
+    callout.append('path').attr('class','callout-panel');
+    callout.append('path').attr('class','callout-topline');
+    callout.append('path').attr('class','callout-accent');
+    callout.append('path').attr('class','callout-select-corner');
+    callout.append('text').attr('class','node-code');
+    callout.append('g').attr('class','icon-wrap');
+    callout.append('text').attr('class','node-title');
+    callout.append('text').attr('class','node-subtitle');
 
-    marker.each(function(d) {
-      const g = d3.select(this).select('.icon-wrap');
-      drawIcon(g, d.icon, d.type === 'major' ? 1.05 : .84);
+    marker.each(function(d){
+      drawIcon(d3.select(this).select('.icon-wrap'), d.icon, d.type === 'major' ? .34 : .24);
     });
 
-    function renderMarkers() {
+    const behaviorGroup = behaviorLayer.append('g').attr('class','behavior-group');
+
+    function renderMarkers(){
       marker.attr('transform', d => `translate(${d.x},${d.y})`);
 
-      marker.select('.anchor-pulse')
-        .attr('x', -5)
-        .attr('y', -5)
-        .attr('width', 10)
-        .attr('height', 10);
+      marker.select('.anchor-core')
+        .attr('x', -4)
+        .attr('y', -4)
+        .attr('width', 8)
+        .attr('height', 8);
 
-      marker.select('.anchor-box-ghost')
-        .attr('x', -8)
-        .attr('y', -8)
-        .attr('width', 16)
-        .attr('height', 16);
-
-      marker.select('.anchor-box-outline')
+      marker.select('.anchor-frame')
         .attr('x', -12)
         .attr('y', -12)
         .attr('width', 24)
         .attr('height', 24);
 
-      marker.select('.anchor-core')
-        .attr('x', d => d.type === 'major' ? -4.5 : -4)
-        .attr('y', d => d.type === 'major' ? -4.5 : -4)
-        .attr('width', d => d.type === 'major' ? 9 : 8)
-        .attr('height', d => d.type === 'major' ? 9 : 8);
+      marker.select('.anchor-aux')
+        .attr('x', -18)
+        .attr('y', -18)
+        .attr('width', 36)
+        .attr('height', 36);
 
-      marker.select('.anchor-cross')
-        .attr('d', 'M-18,0 H-8 M8,0 H18 M0,-18 V-8 M0,8 V18');
+      marker.select('.anchor-ticks')
+        .attr('d', 'M-24,0 H-14 M14,0 H24 M0,-24 V-14 M0,14 V24');
 
-      marker.select('.callout').attr('transform', d => `translate(${d.labelDx},${d.labelDy})`);
-      marker.select('.callout-stem').attr('d', d => `M0,0 L${-d.labelDx * .72},${-d.labelDy * .72}`);
-      marker.select('.callout-panel-bg').attr('d', d => calloutPath(d.w + 12, d.h + 10, 12));
-      marker.select('.callout-panel').attr('d', d => calloutPath(d.w, d.h, 11));
-      marker.select('.callout-scan').attr('d', d => calloutPath(d.w, d.h, 11));
-      marker.select('.callout-accent').attr('d', d => {
-        const hw = d.w / 2;
-        const hh = d.h / 2;
-        return `M${-hw+12},${-hh} H${-hw+52} M${hw-52},${hh} H${hw-12}`;
-      });
-      marker.select('.node-code').attr('x', 0).attr('y', d => -d.h/2 + 15).text(d => d.code);
-      marker.select('.icon-wrap').attr('transform', d => `translate(${-d.w/2 + 31},${d.type === 'major' ? -2 : -1})`);
-      marker.select('.node-title').attr('x', d => d.type === 'major' ? 10 : 12).attr('y', d => d.type === 'major' ? -2 : 0).text(d => d.title);
-      marker.select('.node-subtitle').attr('x', d => d.type === 'major' ? 10 : 12).attr('y', d => d.type === 'major' ? 24 : 23).text(d => d.subtitle);
+      marker.select('.callout')
+        .attr('transform', d => `translate(${d.labelDx},${d.labelDy})`);
+
+      marker.select('.callout-stem')
+        .attr('d', d => `M0,0 L${-d.labelDx * .70},${-d.labelDy * .70}`);
+
+      marker.select('.callout-select-glow')
+        .attr('d', d => calloutPath(d.w + 6, d.h + 6, 9));
+
+      marker.select('.callout-panel')
+        .attr('d', d => calloutPath(d.w, d.h, 8));
+
+      marker.select('.callout-topline')
+        .attr('d', d => {
+          const hw = d.w / 2;
+          const hh = d.h / 2;
+          return `M${-hw+10},${-hh+1} H${hw-10}`;
+        });
+
+      marker.select('.callout-accent')
+        .attr('d', d => {
+          const hw = d.w / 2;
+          const hh = d.h / 2;
+          return `M${-hw+10},${-hh} H${-hw+44} M${hw-44},${hh} H${hw-10}`;
+        });
+
+      marker.select('.callout-select-corner')
+        .attr('d', d => {
+          const hw = d.w / 2;
+          const hh = d.h / 2;
+          return [
+            `M${-hw+8},${-hh-1} H${-hw+42}`,
+            `M${-hw-1},${-hh+8} V${-hh+26}`,
+            `M${hw-42},${-hh-1} H${hw-8}`,
+            `M${hw+1},${-hh+8} V${-hh+26}`,
+            `M${-hw+8},${hh+1} H${-hw+42}`,
+            `M${hw-42},${hh+1} H${hw-8}`
+          ].join(' ');
+        });
+
+      marker.select('.node-code')
+        .attr('x', 0)
+        .attr('y', d => -d.h/2 + 12)
+        .text(d => d.code);
+
+      marker.select('.icon-wrap')
+        .attr('transform', d => `translate(${-d.w/2 + 22},${d.type === 'major' ? -1 : 0})`);
+
+      marker.select('.node-title')
+        .attr('x', d => d.type === 'major' ? 2 : 1)
+        .attr('y', d => d.type === 'major' ? -2 : -1)
+        .text(d => d.title);
+
+      marker.select('.node-subtitle')
+        .attr('x', d => d.type === 'major' ? 2 : 1)
+        .attr('y', d => d.type === 'major' ? 19 : 15)
+        .text(d => d.subtitle);
     }
 
-    function renderRoutes() {
+    function renderRoutes(){
       routeGroups.selectAll('path').attr('d', d => routePath(d));
       routeLabels.attr('transform', d => {
         const pts = routePoints(d);
         const m = routeMid(d);
-        const a = pts[Math.max(0, Math.floor(pts.length / 2) - 1)];
-        const b = pts[Math.min(pts.length - 1, Math.floor(pts.length / 2) + 1)];
-        let angle = Math.atan2(b[1] - a[1], b[0] - a[0]) * 180 / Math.PI;
-        if (angle > 90) angle -= 180;
-        if (angle < -90) angle += 180;
+        const a = pts[Math.max(0, Math.floor(pts.length/2)-1)];
+        const b = pts[Math.min(pts.length-1, Math.floor(pts.length/2)+1)];
+        let angle = Math.atan2(b[1]-a[1], b[0]-a[0]) * 180 / Math.PI;
+        if(angle > 90) angle -= 180;
+        if(angle < -90) angle += 180;
         return `translate(${m.x},${m.y}) rotate(${angle})`;
       });
     }
 
-    function renderAll() {
-      renderMarkers();
-      renderRoutes();
-      applySelectionState();
+    function shouldShowRoute(r){
+      if(selectedNodeId){
+        return r.primary || r.source === selectedNodeId || r.target === selectedNodeId;
+      }
+      return r.primary;
+    }
+    function isConnected(r){
+      return !!selectedNodeId && (r.source === selectedNodeId || r.target === selectedNodeId);
+    }
+    function nodeRelated(nodeId){
+      return routes.some(r => shouldShowRoute(r) && (r.source === nodeId || r.target === nodeId));
     }
 
-    function pathElementFor(routeId) {
+    function updatePanel(){
+      const n = nodeById.get(selectedNodeId || 'platform');
+      const links = routes.filter(r => r.source === n.id || r.target === n.id).length;
+      document.querySelector('#panelCode').textContent = n.code;
+      document.querySelector('#panelTitle').textContent = n.title;
+      document.querySelector('#panelSubtitle').textContent = n.subtitle;
+      document.querySelector('#panelText').textContent = n.text;
+      document.querySelector('#panelStatus').textContent = n.status;
+      document.querySelector('#metricLevel').textContent = n.level;
+      document.querySelector('#metricHealth').textContent = n.health;
+      document.querySelector('#metricLinks').textContent = links;
+      document.querySelector('#metricRisk').textContent = n.risk;
+    }
+
+    function renderBehavior(){
+      behaviorGroup.selectAll('*').remove();
+      if(currentMode !== 'behavior') return;
+      const n = nodeById.get(selectedNodeId || 'platform');
+      if(!n) return;
+
+      // fixed HUD positions to avoid layout scrambling
+      const mainX = Math.min(width - 230, Math.max(width * 0.74, 720));
+      const mainY = height * 0.47;
+      const topX = mainX - 112;
+      const topY = mainY - 104;
+      const botX = mainX - 96;
+      const botY = mainY + 118;
+      const infoX = mainX + 96;
+      const infoY = mainY - 84;
+
+      // connector from selected node
+      behaviorGroup.append('path')
+        .attr('class','behavior-line orange')
+        .attr('d', smoothLine([[n.x, n.y], [n.x + (mainX - n.x) * .48, n.y + (mainY - n.y) * .18], [mainX - 44, mainY - 8]]));
+
+      behaviorGroup.append('circle').attr('class','behavior-link-node').attr('cx', n.x).attr('cy', n.y).attr('r', 3.8);
+
+      // main dial
+      const main = behaviorGroup.append('g').attr('transform', `translate(${mainX},${mainY})`);
+      main.append('circle').attr('class','behavior-ring orange').attr('r', 44);
+      main.append('circle').attr('class','behavior-ring').attr('r', 30);
+      main.append('circle').attr('class','behavior-ring').attr('r', 56).attr('opacity', .26);
+
+      for(let i=0;i<28;i++){
+        const a = Math.PI * 2 * i / 28 - Math.PI/2;
+        const r1 = 49, r2 = (i % 4 === 0) ? 55 : 52;
+        main.append('line')
+          .attr('class','behavior-tick')
+          .attr('x1', Math.cos(a) * r1).attr('y1', Math.sin(a) * r1)
+          .attr('x2', Math.cos(a) * r2).attr('y2', Math.sin(a) * r2);
+      }
+
+      const healthArc = d3.arc().innerRadius(36).outerRadius(40).startAngle(-Math.PI * .92).endAngle(-Math.PI * .92 + (Math.PI * 1.84) * (n.health / 100));
+      main.append('path').attr('class','behavior-arc').attr('d', healthArc());
+      main.append('rect').attr('class','behavior-square white').attr('x', -4).attr('y', -4).attr('width', 8).attr('height', 8);
+      main.append('text').attr('class','behavior-metertext').attr('y', 6).text(`${n.health}%`);
+      main.append('text').attr('class','behavior-small').attr('text-anchor', 'middle').attr('y', 21).text('HEALTH');
+      main.append('text').attr('class','behavior-label').attr('text-anchor', 'middle').attr('y', 72).text('Magnitude / Charges');
+
+      // top small widget
+      behaviorGroup.append('line').attr('class','behavior-line').attr('x1', mainX - 28).attr('y1', mainY - 18).attr('x2', topX + 24).attr('y2', topY + 4);
+      const top = behaviorGroup.append('g').attr('transform', `translate(${topX},${topY})`);
+      top.append('rect').attr('class','behavior-square').attr('x', -6).attr('y', -6).attr('width', 12).attr('height', 12);
+      top.append('path').attr('class','behavior-line').attr('d', 'M-18,0 H-9 M9,0 H18 M0,-18 V-9 M0,9 V18');
+      top.append('text').attr('class','behavior-small').attr('x', -6).attr('y', -24).attr('text-anchor', 'end').text('RADIUS');
+      top.append('text').attr('class','behavior-label').attr('x', 18).attr('y', 6).text('联动半径');
+      top.append('text').attr('class','behavior-small').attr('x', -6).attr('y', -36).attr('text-anchor', 'end').text(`${Math.max(70, Math.round(n.health * 0.78))}%`);
+
+      // bottom small widget
+      behaviorGroup.append('line').attr('class','behavior-line').attr('x1', mainX - 22).attr('y1', mainY + 42).attr('x2', botX + 20).attr('y2', botY - 18);
+      const bot = behaviorGroup.append('g').attr('transform', `translate(${botX},${botY})`);
+      bot.append('circle').attr('class','behavior-ring').attr('r', 20);
+      bot.append('circle').attr('class','behavior-ring orange').attr('r', 12);
+      bot.append('rect').attr('class','behavior-square white').attr('x', -4).attr('y', -4).attr('width', 8).attr('height', 8);
+      const links = routes.filter(r => r.source === n.id || r.target === n.id).length;
+      bot.append('text').attr('class','behavior-small').attr('x', 0).attr('y', 34).attr('text-anchor', 'middle').text('LINKS');
+      bot.append('text').attr('class','behavior-label').attr('x', 0).attr('y', 49).attr('text-anchor', 'middle').text(`${links} / Distance Range`);
+
+      // right info block
+      behaviorGroup.append('line').attr('class','behavior-line').attr('x1', mainX + 26).attr('y1', mainY - 34).attr('x2', infoX - 26).attr('y2', infoY + 22);
+      const info = behaviorGroup.append('g').attr('transform', `translate(${infoX},${infoY})`);
+      info.append('circle').attr('class','behavior-ring orange').attr('r', 28);
+      info.append('circle').attr('class','behavior-ring').attr('r', 17);
+      info.append('rect').attr('class','behavior-square').attr('x', -4).attr('y', -4).attr('width', 8).attr('height', 8);
+      info.append('text').attr('class','behavior-small').attr('x', 38).attr('y', -9).text('STATUS');
+      info.append('text').attr('class','behavior-label').attr('x', 38).attr('y', 7).text('Health / Risk');
+      info.append('text').attr('class','behavior-small').attr('x', 38).attr('y', 24).text(`${n.status} · ${n.risk}`);
+
+      // tidy labels around hub
+      behaviorGroup.append('text').attr('class','behavior-small').attr('x', mainX - 64).attr('y', mainY - 82).text('DISTANCE RANGE');
+      behaviorGroup.append('text').attr('class','behavior-small').attr('x', mainX + 38).attr('y', mainY + 90).text('ANGULAR ROTATION');
+      behaviorGroup.append('text').attr('class','behavior-small').attr('x', mainX - 6).attr('y', mainY - 104).attr('text-anchor', 'middle').text(`${n.code} / ${n.title}`);
+    }
+
+    function applyState(){
+      routeGroups
+        .classed('visible', d => shouldShowRoute(d))
+        .classed('connected', d => isConnected(d))
+        .classed('hidden', d => !shouldShowRoute(d))
+        .classed('dim', d => selectedNodeId && shouldShowRoute(d) && !isConnected(d) && !d.primary);
+
+      routeLabels
+        .classed('visible', d => shouldShowRoute(d))
+        .classed('connected', d => isConnected(d))
+        .classed('hidden', d => !shouldShowRoute(d));
+
+      marker
+        .classed('selected', d => d.id === selectedNodeId)
+        .classed('related', d => selectedNodeId && d.id !== selectedNodeId && nodeRelated(d.id))
+        .classed('dimmed', d => selectedNodeId && d.id !== selectedNodeId && !nodeRelated(d.id));
+
+      particles.transition().duration(160).attr('opacity', p => isConnected(p.route) ? 1 : 0);
+      arrows.transition().duration(160).attr('opacity', p => isConnected(p.route) ? .9 : 0);
+
+      updatePanel();
+      renderBehavior();
+    }
+
+    function renderAll(){
+      renderMarkers();
+      renderRoutes();
+      applyState();
+    }
+    renderAll();
+
+    function routeMainPathEl(routeId){
       const idx = routes.findIndex(r => r.id === routeId);
       return routeGroups.nodes()[idx].querySelector('.route-main');
     }
 
-    function isNodeRelated(nodeId) {
-      return routes.some(r => (r.source === selectedNodeId || r.target === selectedNodeId) && (r.source === nodeId || r.target === nodeId));
-    }
-
-    function updateFocusCard() {
-      if (!selectedNodeId) {
-        focusCard.classList.add('hidden');
-        return;
-      }
-
-      const n = nodeById.get(selectedNodeId);
-      focusCard.classList.remove('hidden');
-      focusCard.querySelector('.focus-code').textContent = n.code;
-      focusCard.querySelector('.focus-title').textContent = n.title;
-      focusCard.querySelector('.focus-body').textContent = n.body;
-      const ul = focusCard.querySelector('ul');
-      ul.innerHTML = n.bullets.map(item => `<li>${item}</li>`).join('');
-    }
-
-    function applySelectionState() {
-      routeGroups.classed('active', d => selectedNodeId && (d.source === selectedNodeId || d.target === selectedNodeId));
-      routeGroups.classed('dim', d => selectedNodeId && !(d.source === selectedNodeId || d.target === selectedNodeId));
-      routeGroups.transition().duration(160).attr('opacity', d => selectedNodeId ? ((d.source === selectedNodeId || d.target === selectedNodeId) ? 1 : .16) : 1);
-
-      routeLabels.classed('active', d => selectedNodeId && (d.source === selectedNodeId || d.target === selectedNodeId));
-      routeLabels.classed('dim', d => selectedNodeId && !(d.source === selectedNodeId || d.target === selectedNodeId));
-      routeLabels.transition().duration(160).attr('opacity', d => selectedNodeId ? ((d.source === selectedNodeId || d.target === selectedNodeId) ? 1 : .18) : .90);
-
-      marker.classed('selected', d => d.id === selectedNodeId);
-      marker.classed('related', d => selectedNodeId && d.id !== selectedNodeId && isNodeRelated(d.id));
-      marker.classed('dimmed', d => selectedNodeId && d.id !== selectedNodeId && !isNodeRelated(d.id));
-
-      particles.transition().duration(160).attr('opacity', p => selectedNodeId && (p.route.source === selectedNodeId || p.route.target === selectedNodeId) ? 1 : 0);
-      arrows.transition().duration(160).attr('opacity', p => selectedNodeId && (p.route.source === selectedNodeId || p.route.target === selectedNodeId) ? .9 : 0);
-
-      updateFocusCard();
-    }
-
-    renderAll();
-
     d3.timer(() => {
       const now = performance.now() / 1000;
 
-      particles.each(function(p) {
-        if (!(selectedNodeId && (p.route.source === selectedNodeId || p.route.target === selectedNodeId))) return;
-        const el = pathElementFor(p.route.id);
-        if (!el) return;
+      particles.each(function(p){
+        if(!isConnected(p.route)) return;
+        const el = routeMainPathEl(p.route.id);
+        if(!el) return;
         let len = 1;
-        try { len = el.getTotalLength(); } catch (e) { len = 1; }
+        try { len = el.getTotalLength(); } catch(e) { len = 1; }
         const travel = (now * p.speed + p.offset * len) % len;
         const pt = el.getPointAtLength(travel);
         d3.select(this).attr('cx', pt.x).attr('cy', pt.y);
       });
 
-      arrows.each(function(p) {
-        if (!(selectedNodeId && (p.route.source === selectedNodeId || p.route.target === selectedNodeId))) return;
-        const el = pathElementFor(p.route.id);
-        if (!el) return;
+      arrows.each(function(p){
+        if(!isConnected(p.route)) return;
+        const el = routeMainPathEl(p.route.id);
+        if(!el) return;
         let len = 1;
-        try { len = el.getTotalLength(); } catch (e) { len = 1; }
+        try { len = el.getTotalLength(); } catch(e) { len = 1; }
         const travel = (now * p.speed + p.offset * len) % len;
         const pt = el.getPointAtLength(travel);
         const pt2 = el.getPointAtLength(Math.min(travel + 1.2, len));
@@ -1246,85 +1170,98 @@
       });
     });
 
-    marker.on('click', function(event, d) {
+    marker.on('click', function(event, d){
       event.stopPropagation();
       selectedNodeId = selectedNodeId === d.id ? null : d.id;
       d3.select(this).raise();
-      applySelectionState();
+      applyState();
     });
 
-    svg.on('click', function(event) {
-      if (event.target.closest && event.target.closest('.marker')) return;
+    svg.on('click', function(event){
+      if(event.target.closest && event.target.closest('.marker')) return;
       selectedNodeId = null;
-      applySelectionState();
+      applyState();
     });
 
-    resetBtn.addEventListener('click', () => {
-      selectedNodeId = null;
-      applySelectionState();
+    modeButtons.forEach(btn => {
+      btn.addEventListener('click', () => {
+        currentMode = btn.dataset.mode;
+        app.className = `mode-${currentMode}`;
+        modeButtons.forEach(b => b.classList.toggle('active', b === btn));
+        if(currentMode === 'behavior' && !selectedNodeId) selectedNodeId = 'platform';
+        applyState();
+      });
     });
 
-    function dragStarted(event, d) {
+    document.addEventListener('keydown', event => {
+      if(event.key === 'Escape'){
+        selectedNodeId = null;
+        applyState();
+      }
+      if(event.key.toLowerCase() === 'v'){
+        const modes = ['standard','behavior','map','minimal','capture'];
+        const idx = modes.indexOf(currentMode);
+        currentMode = modes[(idx + 1) % modes.length];
+        app.className = `mode-${currentMode}`;
+        modeButtons.forEach(b => b.classList.toggle('active', b.dataset.mode === currentMode));
+        if(currentMode === 'behavior' && !selectedNodeId) selectedNodeId = 'platform';
+        applyState();
+      }
+    });
+
+    function dragStarted(event, d){
       d.dragged = true;
       d3.select(this).raise();
     }
-
-    function dragged(event, d) {
-      d.x = Math.max(70, Math.min(width - 70, event.x));
-      d.y = Math.max(90, Math.min(height - 70, event.y));
+    function dragged(event, d){
+      d.x = Math.max(68, Math.min(width - 68, event.x));
+      d.y = Math.max(76, Math.min(height - 70, event.y));
       renderAll();
     }
-
-    function dragEnded(event, d) {
+    function dragEnded(event, d){
       d.rx = d.x / width;
       d.ry = d.y / height;
     }
 
-    function drawIcon(g, type, scale = 1) {
+    function drawIcon(g, type, scale=1){
       g.attr('transform', `scale(${scale})`);
-      if (type === 'platform') {
+      if(type === 'platform'){
         drawPath(g, 'M-18,-10 L0,-18 L18,-10 L0,-2 Z M-18,1 L0,-7 L18,1 L0,9 Z M-18,12 L0,4 L18,12 L0,20 Z');
         drawDots(g, [[-24,-11],[24,-11],[0,-24],[24,12],[-24,12]]);
-      } else if (type === 'data') {
+      } else if(type === 'data'){
         drawPath(g, 'M-18,-18 H18 L24,-10 V10 L18,18 H-18 L-24,10 V-10 Z M-12,-7 H12 M-12,0 H12 M-12,7 H8');
-      } else if (type === 'model') {
+      } else if(type === 'model'){
         drawPath(g, 'M-26,18 L-16,2 L-6,10 L3,-12 L14,3 L25,-18 L34,18 Z M-20,10 C-7,4 8,8 26,4');
-      } else if (type === 'geo') {
+      } else if(type === 'geo'){
         drawPath(g, 'M-28,18 L-18,0 L-8,11 L3,-8 L16,18 Z M8,-24 L24,-8 M20,-18 L12,-10 M-4,15 L26,15');
         drawPath(g, 'M14,-24 L25,-16 L2,7 L-6,0 Z');
-      } else if (type === 'ai') {
+      } else if(type === 'ai'){
         drawPath(g, 'M-15,-16 C-24,-12 -24,2 -14,7 C-20,18 -3,25 2,15 C12,25 25,14 17,4 C27,-6 16,-20 4,-13 C0,-24 -15,-24 -15,-16 Z');
         drawPath(g, 'M-10,-1 H9 M0,-10 V15 M-6,9 L8,-5');
         drawDots(g, [[-10,-1],[9,-1],[0,-10],[0,15],[-6,9],[8,-5]]);
-      } else if (type === 'delivery') {
+      } else if(type === 'delivery'){
         drawPath(g, 'M-20,-22 H10 L22,-10 V22 H-20 Z M10,-22 V-10 H22 M-12,-2 H12 M-12,6 H12 M-12,14 H5');
       }
     }
-
-    function drawPath(g, d) {
+    function drawPath(g, d){
       g.append('path').attr('class', 'node-icon').attr('d', d);
     }
-
-    function drawDots(g, pts) {
-      pts.forEach(([x, y]) => {
-        g.append('circle')
-          .attr('class', 'node-icon-dot')
-          .attr('cx', x)
-          .attr('cy', y)
-          .attr('r', 2.1);
+    function drawDots(g, pts){
+      pts.forEach(([x,y]) => {
+        g.append('circle').attr('class','node-icon-dot').attr('cx', x).attr('cy', y).attr('r', 2);
       });
     }
 
-    function resize() {
+    function resize(){
       width = stage.clientWidth;
       height = stage.clientHeight;
-      svg.attr('viewBox', [0, 0, width, height]);
-      svg.select('.topo-rect').attr('width', width).attr('height', height);
+      svg.attr('viewBox', [0,0,width,height]);
+      bgLayer.select('.bg-topo').attr('width', width).attr('height', height);
       nodes.forEach(d => {
         d.x = width * d.rx;
         d.y = height * d.ry;
       });
-      drawMapBackground();
+      drawBackground();
       renderAll();
     }
 
